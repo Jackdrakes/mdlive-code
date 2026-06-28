@@ -4,10 +4,13 @@ import rehypeSanitize from "rehype-sanitize";
 import rehypeHighlight from "rehype-highlight";
 import { useState, useMemo, useRef, useCallback } from "react";
 import { useScrollBounce } from "../lib/useScrollBounce";
+import { computeDiff, DiffLine } from "../lib/diff";
 
 interface PreviewPanelProps {
   markdown: string;
   onToggleCheckbox?: (lineIndex: number) => void;
+  savedMarkdown?: string;
+  showDiff?: boolean;
 }
 
 function slugify(text: string): string {
@@ -72,7 +75,7 @@ function getHeadingText(children: React.ReactNode): string {
   return getText(children);
 }
 
-export function PreviewPanel({ markdown, onToggleCheckbox }: PreviewPanelProps) {
+export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDiff }: PreviewPanelProps) {
   const lines = markdown.split("\n");
   const [fullWidth, setFullWidth] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -81,6 +84,11 @@ export function PreviewPanel({ markdown, onToggleCheckbox }: PreviewPanelProps) 
   useScrollBounce(viewportRef, contentRef);
 
   checkboxRenderIndex.current = 0;
+
+  const diffLines = useMemo<DiffLine[]>(() => {
+    if (!showDiff || savedMarkdown === undefined) return [];
+    return computeDiff(savedMarkdown, markdown);
+  }, [showDiff, savedMarkdown, markdown]);
 
   const checkboxData = useMemo(() => {
     const data: { lineIndex: number; checked: boolean }[] = [];
@@ -125,70 +133,86 @@ export function PreviewPanel({ markdown, onToggleCheckbox }: PreviewPanelProps) 
           </svg>
         </button>
         <div className="markdown-preview-container">
-          <div className="markdown-preview">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeSanitize, rehypeHighlight]}
-              components={{
-                pre: ({ children, ...props }) => {
-                  const codeText = extractCodeFromPre(children);
-                  return (
-                    <div className="relative">
-                      <pre {...props}>{children}</pre>
-                      <CopyButton code={codeText} />
-                    </div>
-                  );
-                },
-                h1: ({ children, ...props }) => {
-                  const id = slugify(getHeadingText(children));
-                  return <h1 id={id} {...props} className="heading-anchor">{children}</h1>;
-                },
-                h2: ({ children, ...props }) => {
-                  const id = slugify(getHeadingText(children));
-                  return <h2 id={id} {...props} className="heading-anchor">{children}</h2>;
-                },
-                h3: ({ children, ...props }) => {
-                  const id = slugify(getHeadingText(children));
-                  return <h3 id={id} {...props} className="heading-anchor">{children}</h3>;
-                },
-                h4: ({ children, ...props }) => {
-                  const id = slugify(getHeadingText(children));
-                  return <h4 id={id} {...props} className="heading-anchor">{children}</h4>;
-                },
-                h5: ({ children, ...props }) => {
-                  const id = slugify(getHeadingText(children));
-                  return <h5 id={id} {...props} className="heading-anchor">{children}</h5>;
-                },
-                h6: ({ children, ...props }) => {
-                  const id = slugify(getHeadingText(children));
-                  return <h6 id={id} {...props} className="heading-anchor">{children}</h6>;
-                },
-                li: ({ children, className, ...props }) => {
-                  const isTaskItem = className?.includes("task-list-item");
-                  if (isTaskItem) {
-                    const idx = checkboxRenderIndex.current;
-                    checkboxRenderIndex.current += 1;
-                    const data = checkboxData[idx];
-                    const lineIndex = data?.lineIndex;
+          {showDiff ? (
+            <div className="diff-view">
+              {diffLines.map((line, i) => (
+                <div key={i} className={`diff-line diff-${line.type}`}>
+                  <span className="diff-line-num diff-old-num">
+                    {line.oldLineNum ?? ""}
+                  </span>
+                  <span className="diff-line-num diff-new-num">
+                    {line.newLineNum ?? ""}
+                  </span>
+                  <span className="diff-line-content">{line.value || " "}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="markdown-preview">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeSanitize, rehypeHighlight]}
+                components={{
+                  pre: ({ children, ...props }) => {
+                    const codeText = extractCodeFromPre(children);
                     return (
-                      <li
-                        className={className}
-                        {...props}
-                        onClick={() => {
-                          if (lineIndex !== undefined) onToggleCheckbox?.(lineIndex);
-                        }}
-                      >
-                        {children}
-                      </li>
+                      <div className="relative">
+                        <pre {...props}>{children}</pre>
+                        <CopyButton code={codeText} />
+                      </div>
                     );
-                  }
-                  return <li className={className} {...props}>{children}</li>;
-                },
-              }}
-            >
-              {markdown}
-            </ReactMarkdown>
-          </div>
+                  },
+                  h1: ({ children, ...props }) => {
+                    const id = slugify(getHeadingText(children));
+                    return <h1 id={id} {...props} className="heading-anchor">{children}</h1>;
+                  },
+                  h2: ({ children, ...props }) => {
+                    const id = slugify(getHeadingText(children));
+                    return <h2 id={id} {...props} className="heading-anchor">{children}</h2>;
+                  },
+                  h3: ({ children, ...props }) => {
+                    const id = slugify(getHeadingText(children));
+                    return <h3 id={id} {...props} className="heading-anchor">{children}</h3>;
+                  },
+                  h4: ({ children, ...props }) => {
+                    const id = slugify(getHeadingText(children));
+                    return <h4 id={id} {...props} className="heading-anchor">{children}</h4>;
+                  },
+                  h5: ({ children, ...props }) => {
+                    const id = slugify(getHeadingText(children));
+                    return <h5 id={id} {...props} className="heading-anchor">{children}</h5>;
+                  },
+                  h6: ({ children, ...props }) => {
+                    const id = slugify(getHeadingText(children));
+                    return <h6 id={id} {...props} className="heading-anchor">{children}</h6>;
+                  },
+                  li: ({ children, className, ...props }) => {
+                    const isTaskItem = className?.includes("task-list-item");
+                    if (isTaskItem) {
+                      const idx = checkboxRenderIndex.current;
+                      checkboxRenderIndex.current += 1;
+                      const data = checkboxData[idx];
+                      const lineIndex = data?.lineIndex;
+                      return (
+                        <li
+                          className={className}
+                          {...props}
+                          onClick={() => {
+                            if (lineIndex !== undefined) onToggleCheckbox?.(lineIndex);
+                          }}
+                        >
+                          {children}
+                        </li>
+                      );
+                    }
+                    return <li className={className} {...props}>{children}</li>;
+                  },
+                }}
+              >
+                {markdown}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
       </div>
     </div>

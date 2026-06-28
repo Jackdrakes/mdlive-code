@@ -469,6 +469,67 @@ pre:hover .copy-btn {
   color: var(--text-primary);
 }
 
+/* Diff view */
+.diff-view {
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.diff-line {
+  display: flex;
+  min-height: 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.diff-line.diff-equal {
+  background: transparent;
+}
+
+.diff-line.diff-added {
+  background: rgba(40, 140, 60, 0.2);
+}
+
+.diff-line.diff-removed {
+  background: rgba(200, 50, 50, 0.2);
+}
+
+.diff-line-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 38px;
+  min-width: 38px;
+  padding: 0 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  user-select: none;
+  border-right: 1px solid var(--border);
+}
+
+.diff-old-num {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.diff-new-num {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.diff-added .diff-old-num {
+  background: transparent;
+}
+
+.diff-removed .diff-new-num {
+  background: transparent;
+}
+
+.diff-line-content {
+  flex: 1;
+  padding: 0 12px;
+  white-space: pre;
+  overflow-x: auto;
+}
+
 /* CodeMirror overrides */
 .cm-editor {
   height: 100% !important;
