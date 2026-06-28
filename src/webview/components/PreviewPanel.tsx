@@ -2,7 +2,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeHighlight from "rehype-highlight";
-import rehypeRaw from "rehype-raw";
 import { useState, useMemo, useRef } from "react";
 import { useScrollBounce } from "../lib/useScrollBounce";
 
@@ -102,7 +101,7 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
           <div className="markdown-preview">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeHighlight, rehypeRaw, rehypeSanitize]}
+              rehypePlugins={[rehypeSanitize, rehypeHighlight]}
               components={{
                 pre: ({ children, ...props }) => {
                   const codeText = extractCodeFromPre(children);
