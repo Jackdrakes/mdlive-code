@@ -2,7 +2,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView, keymap } from "@codemirror/view";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { postMessage } from "../vscodeApi";
 
 interface EditorPanelProps {
@@ -18,6 +18,20 @@ export function EditorPanel({ value, onChange }: EditorPanelProps) {
       postMessage({ type: "save", content: editorRef.current.state.doc.toString() });
     }
   }, []);
+
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+      event.preventDefault();
+      triggerSave();
+    }
+  }, [triggerSave]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.dom.addEventListener("keydown", handleKeyDown);
+    return () => editor.dom.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   const customKeymap = keymap.of([
     {
@@ -41,13 +55,6 @@ export function EditorPanel({ value, onChange }: EditorPanelProps) {
     },
   ]);
 
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if ((event.ctrlKey || event.metaKey) && event.key === "s") {
-      event.preventDefault();
-      triggerSave();
-    }
-  };
-
   return (
     <div className="h-full w-full overflow-hidden">
       <CodeMirror
@@ -58,7 +65,6 @@ export function EditorPanel({ value, onChange }: EditorPanelProps) {
         onChange={onChange}
         onCreateEditor={(editor) => {
           editorRef.current = editor;
-          editor.dom.addEventListener("keydown", handleKeyDown);
         }}
 
         basicSetup={{
