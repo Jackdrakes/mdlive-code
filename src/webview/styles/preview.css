@@ -436,14 +436,23 @@ pre:hover .copy-btn {
   position: relative;
 }
 
-.heading-anchor:hover::before {
-  content: "#";
+.heading-anchor .anchor-link {
   position: absolute;
-  left: -1em;
+  left: -1.2em;
+  padding-right: 0.3em;
   color: var(--accent);
-  opacity: 0.6;
   text-decoration: none;
+  opacity: 0;
   font-weight: 400;
+  transition: opacity 0.15s ease;
+}
+
+.heading-anchor:hover .anchor-link {
+  opacity: 0.6;
+}
+
+.heading-anchor .anchor-link:hover {
+  opacity: 1;
 }
 
 /* Full-width toggle */

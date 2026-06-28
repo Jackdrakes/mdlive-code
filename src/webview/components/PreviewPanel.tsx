@@ -75,6 +75,20 @@ function getHeadingText(children: React.ReactNode): string {
   return getText(children);
 }
 
+const HeadingAnchor = ({ id, Tag, children }: { id: string; Tag: "h1" | "h2" | "h3" | "h4" | "h5" | "h6"; children: React.ReactNode }) => (
+  <Tag id={id} className="heading-anchor">
+    <a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>
+    {children}
+  </Tag>
+);
+
+function withAnchor(Tag: "h1" | "h2" | "h3" | "h4" | "h5" | "h6") {
+  return ({ children, ...props }: { children?: React.ReactNode; [key: string]: any }) => {
+    const id = slugify(getHeadingText(children));
+    return <HeadingAnchor id={id} Tag={Tag}>{children}</HeadingAnchor>;
+  };
+}
+
 export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDiff }: PreviewPanelProps) {
   const lines = markdown.split("\n");
   const [fullWidth, setFullWidth] = useState(false);
@@ -162,30 +176,12 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
                       </div>
                     );
                   },
-                  h1: ({ children, ...props }) => {
-                    const id = slugify(getHeadingText(children));
-                    return <h1 id={id} {...props} className={`heading-anchor ${props.className || ""}`}>{children}</h1>;
-                  },
-                  h2: ({ children, ...props }) => {
-                    const id = slugify(getHeadingText(children));
-                    return <h2 id={id} {...props} className={`heading-anchor ${props.className || ""}`}>{children}</h2>;
-                  },
-                  h3: ({ children, ...props }) => {
-                    const id = slugify(getHeadingText(children));
-                    return <h3 id={id} {...props} className={`heading-anchor ${props.className || ""}`}>{children}</h3>;
-                  },
-                  h4: ({ children, ...props }) => {
-                    const id = slugify(getHeadingText(children));
-                    return <h4 id={id} {...props} className={`heading-anchor ${props.className || ""}`}>{children}</h4>;
-                  },
-                  h5: ({ children, ...props }) => {
-                    const id = slugify(getHeadingText(children));
-                    return <h5 id={id} {...props} className={`heading-anchor ${props.className || ""}`}>{children}</h5>;
-                  },
-                  h6: ({ children, ...props }) => {
-                    const id = slugify(getHeadingText(children));
-                    return <h6 id={id} {...props} className={`heading-anchor ${props.className || ""}`}>{children}</h6>;
-                  },
+                  h1: withAnchor("h1"),
+                  h2: withAnchor("h2"),
+                  h3: withAnchor("h3"),
+                  h4: withAnchor("h4"),
+                  h5: withAnchor("h5"),
+                  h6: withAnchor("h6"),
                   li: ({ children, className, ...props }) => {
                     const isTaskItem = className?.includes("task-list-item");
                     if (isTaskItem) {
