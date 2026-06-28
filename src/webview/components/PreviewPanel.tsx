@@ -7,6 +7,7 @@ import { useScrollBounce } from "../lib/useScrollBounce";
 
 interface PreviewPanelProps {
   markdown: string;
+  onToggleCheckbox?: (lineIndex: number) => void;
 }
 
 function slugify(text: string): string {
@@ -71,12 +72,15 @@ function getHeadingText(children: React.ReactNode): string {
   return getText(children);
 }
 
-export function PreviewPanel({ markdown }: PreviewPanelProps) {
+export function PreviewPanel({ markdown, onToggleCheckbox }: PreviewPanelProps) {
   const lines = markdown.split("\n");
   const [fullWidth, setFullWidth] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const checkboxRenderIndex = useRef(0);
   useScrollBounce(viewportRef, contentRef);
+
+  checkboxRenderIndex.current = 0;
 
   const checkboxData = useMemo(() => {
     const data: { lineIndex: number; checked: boolean }[] = [];
@@ -162,7 +166,21 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
                 li: ({ children, className, ...props }) => {
                   const isTaskItem = className?.includes("task-list-item");
                   if (isTaskItem) {
-                    return <li className={className} {...props}>{children}</li>;
+                    const idx = checkboxRenderIndex.current;
+                    checkboxRenderIndex.current += 1;
+                    const data = checkboxData[idx];
+                    const lineIndex = data?.lineIndex;
+                    return (
+                      <li
+                        className={className}
+                        {...props}
+                        onClick={() => {
+                          if (lineIndex !== undefined) onToggleCheckbox?.(lineIndex);
+                        }}
+                      >
+                        {children}
+                      </li>
+                    );
                   }
                   return <li className={className} {...props}>{children}</li>;
                 },

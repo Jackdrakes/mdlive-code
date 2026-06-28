@@ -7,6 +7,17 @@ import { postMessage } from "./vscodeApi";
 import { DEFAULT_CONTENT } from "./lib/constants";
 import { countWords, countCharacters } from "./lib/markdown";
 
+function toggleCheckboxLine(content: string, lineIndex: number): string {
+  const lines = content.split("\n");
+  const line = lines[lineIndex];
+  if (!line) return content;
+  const match = line.match(/^(\s*-\s*\[)([ x])(\]\s*)/);
+  if (!match) return content;
+  const newCheck = match[2] === "x" ? " " : "x";
+  lines[lineIndex] = match[1] + newCheck + match[3] + line.slice(match[0].length);
+  return lines.join("\n");
+}
+
 export default function App() {
   const [content, setContent] = useState(DEFAULT_CONTENT);
   const [viewMode, setViewMode] = useState<ViewMode>("split");
@@ -56,7 +67,9 @@ export default function App() {
         )}
         {viewMode !== "editor" && (
           <div className={`panel ${viewMode === "split" ? "panel-split" : "panel-full"}`}>
-            <PreviewPanel markdown={content} />
+            <PreviewPanel markdown={content} onToggleCheckbox={(lineIndex) => {
+              setContent(toggleCheckboxLine(content, lineIndex));
+            }} />
           </div>
         )}
       </div>
