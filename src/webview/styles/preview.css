@@ -245,6 +245,10 @@ html, body, #root {
   margin-bottom: 6px;
 }
 
+.markdown-preview li.task-list-item {
+  cursor: pointer;
+}
+
 .markdown-preview ul {
   list-style: disc;
 }
