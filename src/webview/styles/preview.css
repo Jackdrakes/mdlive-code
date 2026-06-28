@@ -426,6 +426,22 @@ pre:hover .copy-btn {
   color: var(--text-primary);
 }
 
+/* Heading anchors */
+.heading-anchor {
+  scroll-margin-top: 60px;
+  position: relative;
+}
+
+.heading-anchor:hover::before {
+  content: "#";
+  position: absolute;
+  left: -1em;
+  color: var(--accent);
+  opacity: 0.6;
+  text-decoration: none;
+  font-weight: 400;
+}
+
 /* Full-width toggle */
 .fullwidth-btn {
   position: absolute;

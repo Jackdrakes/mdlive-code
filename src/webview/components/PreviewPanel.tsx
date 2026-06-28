@@ -2,11 +2,20 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeHighlight from "rehype-highlight";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { useScrollBounce } from "../lib/useScrollBounce";
 
 interface PreviewPanelProps {
   markdown: string;
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/--+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function CopyButton({ code }: { code: string }) {
@@ -35,6 +44,20 @@ function CopyButton({ code }: { code: string }) {
 }
 
 function extractCodeFromPre(children: React.ReactNode): string {
+  const getText = (node: React.ReactNode): string => {
+    if (typeof node === "string") return node;
+    if (typeof node === "number") return String(node);
+    if (!node) return "";
+    if (Array.isArray(node)) return node.map(getText).join("");
+    if (typeof node === "object" && "props" in node) {
+      return getText((node as any).props?.children);
+    }
+    return "";
+  };
+  return getText(children);
+}
+
+function getHeadingText(children: React.ReactNode): string {
   const getText = (node: React.ReactNode): string => {
     if (typeof node === "string") return node;
     if (typeof node === "number") return String(node);
@@ -111,6 +134,30 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
                       <CopyButton code={codeText} />
                     </div>
                   );
+                },
+                h1: ({ children, ...props }) => {
+                  const id = slugify(getHeadingText(children));
+                  return <h1 id={id} {...props} className="heading-anchor">{children}</h1>;
+                },
+                h2: ({ children, ...props }) => {
+                  const id = slugify(getHeadingText(children));
+                  return <h2 id={id} {...props} className="heading-anchor">{children}</h2>;
+                },
+                h3: ({ children, ...props }) => {
+                  const id = slugify(getHeadingText(children));
+                  return <h3 id={id} {...props} className="heading-anchor">{children}</h3>;
+                },
+                h4: ({ children, ...props }) => {
+                  const id = slugify(getHeadingText(children));
+                  return <h4 id={id} {...props} className="heading-anchor">{children}</h4>;
+                },
+                h5: ({ children, ...props }) => {
+                  const id = slugify(getHeadingText(children));
+                  return <h5 id={id} {...props} className="heading-anchor">{children}</h5>;
+                },
+                h6: ({ children, ...props }) => {
+                  const id = slugify(getHeadingText(children));
+                  return <h6 id={id} {...props} className="heading-anchor">{children}</h6>;
                 },
                 li: ({ children, className, ...props }) => {
                   const isTaskItem = className?.includes("task-list-item");
