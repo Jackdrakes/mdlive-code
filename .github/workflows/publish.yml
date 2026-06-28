@@ -1,0 +1,27 @@
+name: Publish Extension
+
+on:
+  push:
+    branches: [prod]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx vsce package -o extension.vsix
+
+      - name: Publish to VS Code Marketplace
+        run: npx vsce publish --packagePath extension.vsix -p ${{ secrets.MARKETPLACE_TOKEN }}
+
+      - name: Publish to Open VSX
+        run: npx ovsx publish --packagePath extension.vsix -p ${{ secrets.OPENVSX_TOKEN }}
