@@ -67,8 +67,8 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
   }, [markdown]);
 
   return (
-    <div ref={viewportRef} style={{ background: "var(--bg-secondary)", height: "100%", overflow: "auto" }}>
-      <div ref={contentRef} style={{ minHeight: "100%" }}>
+    <div ref={viewportRef} style={{ background: "var(--bg-secondary)", height: "100%", overflow: "auto", display: "flex", flexDirection: "column" }}>
+      <div ref={contentRef} style={{ flex: 1, minHeight: "100%" }}>
         <div className="markdown-preview-container">
         <button
           onClick={() => setFullWidth((v) => !v)}
