@@ -164,27 +164,27 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
                   },
                   h1: ({ children, ...props }) => {
                     const id = slugify(getHeadingText(children));
-                    return <h1 id={id} {...props} className="heading-anchor">{children}</h1>;
+                    return <h1 id={id} {...props} className={`heading-anchor ${props.className || ""}`}>{children}</h1>;
                   },
                   h2: ({ children, ...props }) => {
                     const id = slugify(getHeadingText(children));
-                    return <h2 id={id} {...props} className="heading-anchor">{children}</h2>;
+                    return <h2 id={id} {...props} className={`heading-anchor ${props.className || ""}`}>{children}</h2>;
                   },
                   h3: ({ children, ...props }) => {
                     const id = slugify(getHeadingText(children));
-                    return <h3 id={id} {...props} className="heading-anchor">{children}</h3>;
+                    return <h3 id={id} {...props} className={`heading-anchor ${props.className || ""}`}>{children}</h3>;
                   },
                   h4: ({ children, ...props }) => {
                     const id = slugify(getHeadingText(children));
-                    return <h4 id={id} {...props} className="heading-anchor">{children}</h4>;
+                    return <h4 id={id} {...props} className={`heading-anchor ${props.className || ""}`}>{children}</h4>;
                   },
                   h5: ({ children, ...props }) => {
                     const id = slugify(getHeadingText(children));
-                    return <h5 id={id} {...props} className="heading-anchor">{children}</h5>;
+                    return <h5 id={id} {...props} className={`heading-anchor ${props.className || ""}`}>{children}</h5>;
                   },
                   h6: ({ children, ...props }) => {
                     const id = slugify(getHeadingText(children));
-                    return <h6 id={id} {...props} className="heading-anchor">{children}</h6>;
+                    return <h6 id={id} {...props} className={`heading-anchor ${props.className || ""}`}>{children}</h6>;
                   },
                   li: ({ children, className, ...props }) => {
                     const isTaskItem = className?.includes("task-list-item");
