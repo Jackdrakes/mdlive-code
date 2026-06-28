@@ -12,7 +12,7 @@ export const vscode = api;
 
 export type Message = 
   | { type: "setContent"; content: string; fileName: string }
-  | { type: "save" }
+  | { type: "save"; content: string }
   | { type: "ready" }
   | { type: "contentChanged"; content: string }
   | { type: "saveRequest"; content: string };

@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
+import { randomBytes } from "crypto";
 
 function getWebviewContent(extensionPath: string, panel: vscode.WebviewPanel): string {
   const webviewPath = vscode.Uri.file(path.join(extensionPath, "dist", "webview"));
@@ -26,12 +27,7 @@ function getWebviewContent(extensionPath: string, panel: vscode.WebviewPanel): s
 }
 
 function getNonce(): string {
-  let text = "";
-  const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  for (let i = 0; i < 64; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
+  return randomBytes(32).toString("base64");
 }
 
 class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
@@ -74,6 +70,17 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
       switch (message.type) {
         case "ready":
           sendContent();
+          break;
+
+        case "contentChanged":
+          isWebviewChange = true;
+          const editRange = new vscode.Range(
+            document.lineAt(0).range.start,
+            document.lineAt(document.lineCount - 1).range.end
+          );
+          const contentEdit = new vscode.WorkspaceEdit();
+          contentEdit.replace(document.uri, editRange, message.content);
+          await vscode.workspace.applyEdit(contentEdit);
           break;
 
         case "save":

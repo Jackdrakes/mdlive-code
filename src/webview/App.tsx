@@ -12,6 +12,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>("split");
   const contentRef = useRef(content);
   contentRef.current = content;
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -24,7 +25,10 @@ export default function App() {
     window.addEventListener("message", handler);
     postMessage({ type: "ready" });
 
-    return () => window.removeEventListener("message", handler);
+    return () => {
+      window.removeEventListener("message", handler);
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
   }, []);
 
   const wc = countWords(content);
@@ -32,6 +36,10 @@ export default function App() {
 
   const handleChange = useCallback((value: string) => {
     setContent(value);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      postMessage({ type: "contentChanged", content: contentRef.current });
+    }, 300);
   }, []);
 
   return (

@@ -69,7 +69,7 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
   return (
     <div ref={viewportRef} style={{ background: "var(--bg-secondary)", height: "100%", overflow: "auto", display: "flex", flexDirection: "column" }}>
       <div ref={contentRef} style={{ flex: 1, minHeight: "100%" }}>
-        <div className="markdown-preview-container">
+        <div className={`markdown-preview-container ${fullWidth ? "full-width" : ""}`}>
         <button
           onClick={() => setFullWidth((v) => !v)}
           className="fullwidth-btn"
@@ -80,24 +80,24 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
               <>
                 <path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3" />
                 <path d="M16 3h3a2 2 0 0 1 2 2v14c0 1.1-.9 2-2 2h-3" />
-                <path d="M12 20v2" />
-                <path d="M12 14v2" />
-                <path d="M12 8v2" />
+                <path d="m15 9-3 3 3 3" />
                 <path d="M12 2v2" />
+                <path d="m9 9 3 3-3 3" />
+                <path d="M12 20v2" />
               </>
             ) : (
               <>
                 <path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3" />
                 <path d="M16 3h3a2 2 0 0 1 2 2v14c0 1.1-.9 2-2 2h-3" />
-                <path d="M12 20v2" />
-                <path d="M12 14v2" />
-                <path d="M12 8v2" />
+                <path d="m10 17-5-5 5-5" />
                 <path d="M12 2v2" />
+                <path d="m14 7 5 5-5 5" />
+                <path d="M12 20v2" />
               </>
             )}
           </svg>
         </button>
-        <div className={`markdown-preview-container ${fullWidth ? "full-width" : ""}`}>
+        <div className="markdown-preview-container">
           <div className="markdown-preview">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}

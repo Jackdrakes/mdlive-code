@@ -48,6 +48,7 @@
     "watch:extension": "node esbuild.js --watch",
     "watch:webview": "vite build --watch",
     "watch": "node esbuild.js --watch",
+    "typecheck:webview": "tsc --project tsconfig.webview.json --noEmit",
     "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {
