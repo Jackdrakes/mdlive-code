@@ -4,9 +4,12 @@ import rehypeSanitize from "rehype-sanitize";
 import rehypeHighlight from "rehype-highlight";
 import { useState, useMemo, useRef } from "react";
 import { useScrollBounce } from "../lib/useScrollBounce";
+import { computeDiff, DiffLine } from "../lib/diff";
 
 interface PreviewPanelProps {
   markdown: string;
+  savedMarkdown?: string;
+  showDiff?: boolean;
 }
 
 function CopyButton({ code }: { code: string }) {
@@ -48,12 +51,17 @@ function extractCodeFromPre(children: React.ReactNode): string {
   return getText(children);
 }
 
-export function PreviewPanel({ markdown }: PreviewPanelProps) {
+export function PreviewPanel({ markdown, savedMarkdown, showDiff }: PreviewPanelProps) {
   const lines = markdown.split("\n");
   const [fullWidth, setFullWidth] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   useScrollBounce(viewportRef, contentRef);
+
+  const diffLines = useMemo<DiffLine[]>(() => {
+    if (!showDiff || savedMarkdown === undefined) return [];
+    return computeDiff(savedMarkdown, markdown);
+  }, [showDiff, savedMarkdown, markdown]);
 
   const checkboxData = useMemo(() => {
     const data: { lineIndex: number; checked: boolean }[] = [];
@@ -98,32 +106,48 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
           </svg>
         </button>
         <div className="markdown-preview-container">
-          <div className="markdown-preview">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeSanitize, rehypeHighlight]}
-              components={{
-                pre: ({ children, ...props }) => {
-                  const codeText = extractCodeFromPre(children);
-                  return (
-                    <div className="relative">
-                      <pre {...props}>{children}</pre>
-                      <CopyButton code={codeText} />
-                    </div>
-                  );
-                },
-                li: ({ children, className, ...props }) => {
-                  const isTaskItem = className?.includes("task-list-item");
-                  if (isTaskItem) {
+          {showDiff ? (
+            <div className="diff-view">
+              {diffLines.map((line, i) => (
+                <div key={i} className={`diff-line diff-${line.type}`}>
+                  <span className="diff-line-num diff-old-num">
+                    {line.oldLineNum ?? ""}
+                  </span>
+                  <span className="diff-line-num diff-new-num">
+                    {line.newLineNum ?? ""}
+                  </span>
+                  <span className="diff-line-content">{line.value || " "}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="markdown-preview">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeSanitize, rehypeHighlight]}
+                components={{
+                  pre: ({ children, ...props }) => {
+                    const codeText = extractCodeFromPre(children);
+                    return (
+                      <div className="relative">
+                        <pre {...props}>{children}</pre>
+                        <CopyButton code={codeText} />
+                      </div>
+                    );
+                  },
+                  li: ({ children, className, ...props }) => {
+                    const isTaskItem = className?.includes("task-list-item");
+                    if (isTaskItem) {
+                      return <li className={className} {...props}>{children}</li>;
+                    }
                     return <li className={className} {...props}>{children}</li>;
-                  }
-                  return <li className={className} {...props}>{children}</li>;
-                },
-              }}
-            >
-              {markdown}
-            </ReactMarkdown>
-          </div>
+                  },
+                }}
+              >
+                {markdown}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
       </div>
     </div>

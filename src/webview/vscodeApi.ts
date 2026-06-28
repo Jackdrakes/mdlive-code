@@ -15,7 +15,8 @@ export type Message =
   | { type: "save"; content: string }
   | { type: "ready" }
   | { type: "contentChanged"; content: string }
-  | { type: "saveRequest"; content: string };
+  | { type: "saveRequest"; content: string }
+  | { type: "saveCompleted" };
 
 export function postMessage(message: Message) {
   api.postMessage(message);

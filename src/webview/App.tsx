@@ -9,7 +9,9 @@ import { countWords, countCharacters } from "./lib/markdown";
 
 export default function App() {
   const [content, setContent] = useState(DEFAULT_CONTENT);
+  const [savedContent, setSavedContent] = useState(DEFAULT_CONTENT);
   const [viewMode, setViewMode] = useState<ViewMode>("split");
+  const [showDiff, setShowDiff] = useState(false);
   const contentRef = useRef(content);
   contentRef.current = content;
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -19,6 +21,10 @@ export default function App() {
       const message = event.data;
       if (message.type === "setContent") {
         setContent(message.content);
+        setSavedContent(message.content);
+      }
+      if (message.type === "saveCompleted") {
+        setSavedContent(contentRef.current);
       }
     };
 
@@ -47,6 +53,8 @@ export default function App() {
       <Toolbar
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        showDiff={showDiff}
+        onToggleDiff={() => setShowDiff((v) => !v)}
       />
       <div className="app-content">
         {viewMode !== "preview" && (
@@ -56,7 +64,7 @@ export default function App() {
         )}
         {viewMode !== "editor" && (
           <div className={`panel ${viewMode === "split" ? "panel-split" : "panel-full"}`}>
-            <PreviewPanel markdown={content} />
+            <PreviewPanel markdown={content} savedMarkdown={savedContent} showDiff={showDiff} />
           </div>
         )}
       </div>

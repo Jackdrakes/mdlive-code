@@ -93,6 +93,7 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
           edit.replace(document.uri, fullRange, message.content);
           await vscode.workspace.applyEdit(edit);
           await document.save();
+          panel.webview.postMessage({ type: "saveCompleted" });
           break;
       }
     });
