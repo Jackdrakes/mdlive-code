@@ -1,0 +1,74 @@
+{
+  "name": "vscode-mdlive",
+  "displayName": "MdLive",
+  "description": "Live markdown editor with split preview, CodeMirror editing, and GFM support",
+  "version": "0.1.0",
+  "publisher": "your-publisher",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Editors",
+    "Visualization"
+  ],
+  "keywords": ["markdown", "preview", "editor", "codemirror"],
+  "icon": "media/icon.png",
+  "activationEvents": [
+    "onCustomEditor:mdlive.editor"
+  ],
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "mdlive.editor",
+        "displayName": "MdLive Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          },
+          {
+            "filenamePattern": "*.markdown"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "mdlive.openEditor",
+        "title": "MdLive: Open Markdown Editor"
+      }
+    ]
+  },
+  "main": "./out/extension.js",
+  "scripts": {
+    "build:extension": "node esbuild.js",
+    "build:webview": "vite build",
+    "compile": "npm run build:webview && npm run build:extension",
+    "watch:extension": "node esbuild.js --watch",
+    "watch:webview": "vite build --watch",
+    "watch": "node esbuild.js --watch",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@types/vscode": "^1.85.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.5.0",
+    "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "@codemirror/lang-markdown": "^6.3.0",
+    "@codemirror/theme-one-dark": "^6.1.2",
+    "@uiw/react-codemirror": "^4.23.0",
+    "lucide-react": "^0.460.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^9.0.1",
+    "rehype-highlight": "^7.0.2",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1"
+  }
+}
