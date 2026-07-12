@@ -19,6 +19,18 @@
     "codemirror"
   ],
   "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Jackdrakes/mdlive-code.git"
+  },
+  "homepage": "https://github.com/Jackdrakes/mdlive-code/blob/main/README.md",
+  "bugs": {
+    "url": "https://github.com/Jackdrakes/mdlive-code/issues"
+  },
   "activationEvents": [
     "onCustomEditor:mdlive.editor"
   ],
