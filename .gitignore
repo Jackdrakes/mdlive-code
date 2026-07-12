@@ -2,3 +2,5 @@ node_modules/
 out/
 dist/webview/
 *.vsix
+.agent-docs/
+.agents-docs/
