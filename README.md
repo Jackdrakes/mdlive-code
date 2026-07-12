@@ -48,4 +48,4 @@ See [CHANGELOG.md](./CHANGELOG.md) for release history.
 
 ## License
 
-[MIT](./LICENSE)
+[Apache 2.0](./LICENSE)
