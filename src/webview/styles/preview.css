@@ -547,3 +547,69 @@ pre:hover .copy-btn {
 .cm-scroller {
   font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace !important;
 }
+
+.cm-gutters {
+  background: #1e1e1e !important;
+  border-right: 1px solid #3c3c3c !important;
+  color: #858585 !important;
+  min-width: 50px;
+}
+
+.cm-activeLineGutter {
+  background: #2a2d2e !important;
+}
+
+.cm-activeLine {
+  background: #2a2d2e !important;
+}
+
+.cm-selectionBackground {
+  background: #264f78 !important;
+}
+
+.cm-focused .cm-selectionBackground {
+  background: #264f78 !important;
+}
+
+.cm-cursor {
+  border-left-width: 2px !important;
+  border-left-color: #c6c6c6 !important;
+}
+
+.cm-foldGutter .cm-gutterElement {
+  color: #858585;
+  cursor: pointer;
+}
+
+.cm-search {
+  background: #252526;
+  border-bottom: 1px solid #3c3c3c;
+  padding: 4px 6px;
+}
+
+.cm-search label {
+  color: #cccccc;
+  font-size: 12px;
+}
+
+.cm-search input {
+  background: #3c3c3c;
+  color: #cccccc;
+  border: 1px solid #5a5a5a;
+  padding: 3px 6px;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.cm-search button {
+  background: #3c3c3c;
+  color: #cccccc;
+  border: 1px solid #5a5a5a;
+  padding: 3px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.cm-search button:hover {
+  background: #4f4f4f;
+}

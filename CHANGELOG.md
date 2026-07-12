@@ -4,6 +4,17 @@ All notable changes to **MdLive** will be documented in this file.
 
 ---
 
+## [0.1.2] — 2026-07-12
+
+### Features
+
+- Double-click any block in preview to select corresponding lines in the CodeMirror editor
+- Find & Replace panel (`Cmd+H`) via `@codemirror/search`
+- Editor theme switched from `oneDark` to `vscodeDark` for native VS Code appearance
+- CodeMirror UI polish: gutter styling, active line highlight, selection color, cursor, fold gutter, and search panel
+
+---
+
 ## [0.1.1] — 2026-07-12
 
 ### Features

@@ -7,6 +7,12 @@ import { postMessage } from "./vscodeApi";
 import { DEFAULT_CONTENT } from "./lib/constants";
 import { countWords, countCharacters } from "./lib/markdown";
 
+interface SelectionRequest {
+  fromLine: number;
+  toLine: number;
+  id: number;
+}
+
 function toggleCheckboxLine(content: string, lineIndex: number): string {
   const lines = content.split("\n");
   const line = lines[lineIndex];
@@ -23,6 +29,8 @@ export default function App() {
   const [savedContent, setSavedContent] = useState(DEFAULT_CONTENT);
   const [viewMode, setViewMode] = useState<ViewMode>("split");
   const [showDiff, setShowDiff] = useState(false);
+  const [selectionRequest, setSelectionRequest] = useState<SelectionRequest | null>(null);
+  const selectionIdRef = useRef(0);
   const contentRef = useRef(content);
   contentRef.current = content;
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -59,6 +67,11 @@ export default function App() {
     }, 300);
   }, []);
 
+  const handlePreviewDoubleClick = useCallback((fromLine: number, toLine: number) => {
+    selectionIdRef.current += 1;
+    setSelectionRequest({ fromLine, toLine, id: selectionIdRef.current });
+  }, []);
+
   return (
     <div className="app-container">
       <Toolbar
@@ -70,14 +83,14 @@ export default function App() {
       <div className="app-content">
         {viewMode !== "preview" && (
           <div className={`panel ${viewMode === "split" ? "panel-split panel-border" : "panel-full"}`}>
-            <EditorPanel value={content} onChange={handleChange} />
+            <EditorPanel value={content} onChange={handleChange} selectionRequest={selectionRequest} />
           </div>
         )}
         {viewMode !== "editor" && (
           <div className={`panel ${viewMode === "split" ? "panel-split" : "panel-full"}`}>
             <PreviewPanel markdown={content} onToggleCheckbox={(lineIndex) => {
               setContent(toggleCheckboxLine(content, lineIndex));
-            }} savedMarkdown={savedContent} showDiff={showDiff} />
+            }} savedMarkdown={savedContent} showDiff={showDiff} onDoubleClickLine={viewMode === "split" ? handlePreviewDoubleClick : undefined} />
           </div>
         )}
       </div>

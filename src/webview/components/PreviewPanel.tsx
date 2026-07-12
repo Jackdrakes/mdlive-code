@@ -11,6 +11,7 @@ interface PreviewPanelProps {
   onToggleCheckbox?: (lineIndex: number) => void;
   savedMarkdown?: string;
   showDiff?: boolean;
+  onDoubleClickLine?: (fromLine: number, toLine: number) => void;
 }
 
 function slugify(text: string): string {
@@ -75,21 +76,7 @@ function getHeadingText(children: React.ReactNode): string {
   return getText(children);
 }
 
-const HeadingAnchor = ({ id, Tag, children }: { id: string; Tag: "h1" | "h2" | "h3" | "h4" | "h5" | "h6"; children: React.ReactNode }) => (
-  <Tag id={id} className="heading-anchor">
-    <a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>
-    {children}
-  </Tag>
-);
-
-function withAnchor(Tag: "h1" | "h2" | "h3" | "h4" | "h5" | "h6") {
-  return ({ children, ...props }: { children?: React.ReactNode; [key: string]: any }) => {
-    const id = slugify(getHeadingText(children));
-    return <HeadingAnchor id={id} Tag={Tag}>{children}</HeadingAnchor>;
-  };
-}
-
-export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDiff }: PreviewPanelProps) {
+export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDiff, onDoubleClickLine }: PreviewPanelProps) {
   const lines = markdown.split("\n");
   const [fullWidth, setFullWidth] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -114,6 +101,111 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
     });
     return data;
   }, [markdown]);
+
+  const handleBlockDoubleClick = useCallback((startLine: number, endLine: number) => {
+    onDoubleClickLine?.(startLine, endLine);
+  }, [onDoubleClickLine]);
+
+  const previewComponents = useMemo(() => {
+    function blockWithDblClick(Tag: "p" | "blockquote" | "pre" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6") {
+      return ({ children, node, ...rest }: any) => {
+        const sl = node?.position?.start?.line;
+        const el = node?.position?.end?.line;
+        const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
+        return <Tag {...rest} onDoubleClick={dbl}>{children}</Tag>;
+      };
+    }
+
+    return {
+      p: blockWithDblClick("p"),
+      blockquote: blockWithDblClick("blockquote"),
+      pre: ({ children, node, ...rest }: any) => {
+        const codeText = extractCodeFromPre(children);
+        const sl = node?.position?.start?.line;
+        const el = node?.position?.end?.line;
+        const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
+        return (
+          <div className="relative" onDoubleClick={dbl}>
+            <pre {...rest}>{children}</pre>
+            <CopyButton code={codeText} />
+          </div>
+        );
+      },
+      h1: ({ children, node, ...rest }: any) => {
+        const id = slugify(getHeadingText(children));
+        const sl = node?.position?.start?.line;
+        const el = node?.position?.end?.line;
+        const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
+        return <h1 id={id} className="heading-anchor" onDoubleClick={dbl}><a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>{children}</h1>;
+      },
+      h2: ({ children, node, ...rest }: any) => {
+        const id = slugify(getHeadingText(children));
+        const sl = node?.position?.start?.line;
+        const el = node?.position?.end?.line;
+        const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
+        return <h2 id={id} className="heading-anchor" onDoubleClick={dbl}><a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>{children}</h2>;
+      },
+      h3: ({ children, node, ...rest }: any) => {
+        const id = slugify(getHeadingText(children));
+        const sl = node?.position?.start?.line;
+        const el = node?.position?.end?.line;
+        const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
+        return <h3 id={id} className="heading-anchor" onDoubleClick={dbl}><a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>{children}</h3>;
+      },
+      h4: ({ children, node, ...rest }: any) => {
+        const id = slugify(getHeadingText(children));
+        const sl = node?.position?.start?.line;
+        const el = node?.position?.end?.line;
+        const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
+        return <h4 id={id} className="heading-anchor" onDoubleClick={dbl}><a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>{children}</h4>;
+      },
+      h5: ({ children, node, ...rest }: any) => {
+        const id = slugify(getHeadingText(children));
+        const sl = node?.position?.start?.line;
+        const el = node?.position?.end?.line;
+        const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
+        return <h5 id={id} className="heading-anchor" onDoubleClick={dbl}><a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>{children}</h5>;
+      },
+      h6: ({ children, node, ...rest }: any) => {
+        const id = slugify(getHeadingText(children));
+        const sl = node?.position?.start?.line;
+        const el = node?.position?.end?.line;
+        const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
+        return <h6 id={id} className="heading-anchor" onDoubleClick={dbl}><a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>{children}</h6>;
+      },
+      a: ({ href, children, ...rest }: any) => {
+        if (!href?.startsWith("#")) {
+          return <a href={href} {...rest}>{children}</a>;
+        }
+        return (
+          <a href={href} {...rest} onClick={(e: React.MouseEvent) => {
+            e.preventDefault();
+            const id = href.slice(1);
+            const el = document.getElementById(id);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}>{children}</a>
+        );
+      },
+      li: ({ children, className, node, ...rest }: any) => {
+        const isTaskItem = className?.includes("task-list-item");
+        const idx = checkboxRenderIndex.current;
+        const sl = node?.position?.start?.line;
+        const el = node?.position?.end?.line;
+        const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
+        if (isTaskItem) {
+          checkboxRenderIndex.current += 1;
+          const data = checkboxData[idx];
+          const lineIndex = data?.lineIndex;
+          return (
+            <li className={className} {...rest} onClick={() => { if (lineIndex !== undefined) onToggleCheckbox?.(lineIndex); }} onDoubleClick={dbl}>
+              {children}
+            </li>
+          );
+        }
+        return <li className={className} {...rest} onDoubleClick={dbl}>{children}</li>;
+      },
+    };
+  }, [checkboxData, onToggleCheckbox, onDoubleClickLine, handleBlockDoubleClick]);
 
   return (
     <div ref={viewportRef} style={{ background: "var(--bg-secondary)", height: "100%", overflow: "auto", display: "flex", flexDirection: "column" }}>
@@ -166,44 +258,7 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeSanitize, rehypeHighlight]}
-                components={{
-                  pre: ({ children, ...props }) => {
-                    const codeText = extractCodeFromPre(children);
-                    return (
-                      <div className="relative">
-                        <pre {...props}>{children}</pre>
-                        <CopyButton code={codeText} />
-                      </div>
-                    );
-                  },
-                  h1: withAnchor("h1"),
-                  h2: withAnchor("h2"),
-                  h3: withAnchor("h3"),
-                  h4: withAnchor("h4"),
-                  h5: withAnchor("h5"),
-                  h6: withAnchor("h6"),
-                  li: ({ children, className, ...props }) => {
-                    const isTaskItem = className?.includes("task-list-item");
-                    if (isTaskItem) {
-                      const idx = checkboxRenderIndex.current;
-                      checkboxRenderIndex.current += 1;
-                      const data = checkboxData[idx];
-                      const lineIndex = data?.lineIndex;
-                      return (
-                        <li
-                          className={className}
-                          {...props}
-                          onClick={() => {
-                            if (lineIndex !== undefined) onToggleCheckbox?.(lineIndex);
-                          }}
-                        >
-                          {children}
-                        </li>
-                      );
-                    }
-                    return <li className={className} {...props}>{children}</li>;
-                  },
-                }}
+                components={previewComponents}
               >
                 {markdown}
               </ReactMarkdown>

@@ -2,7 +2,7 @@
   "name": "vscode-mdlive",
   "displayName": "MdLive",
   "description": "Live markdown editor with split preview, CodeMirror editing, and GFM support",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "publisher": "your-publisher",
   "engines": {
     "vscode": "^1.85.0"
@@ -12,7 +12,12 @@
     "Editors",
     "Visualization"
   ],
-  "keywords": ["markdown", "preview", "editor", "codemirror"],
+  "keywords": [
+    "markdown",
+    "preview",
+    "editor",
+    "codemirror"
+  ],
   "icon": "media/icon.png",
   "activationEvents": [
     "onCustomEditor:mdlive.editor"
@@ -66,7 +71,9 @@
   },
   "dependencies": {
     "@codemirror/lang-markdown": "^6.3.0",
+    "@codemirror/search": "^6.7.1",
     "@codemirror/theme-one-dark": "^6.1.2",
+    "@uiw/codemirror-theme-vscode": "^4.25.10",
     "@uiw/react-codemirror": "^4.23.0",
     "lucide-react": "^0.460.0",
     "react": "^19.0.0",
