@@ -4,6 +4,16 @@ All notable changes to **MdLive** will be documented in this file.
 
 ---
 
+## [0.1.3] — 2026-07-25
+
+### Features
+
+- Remember user's view mode preference (split/editor/preview) across .md files
+- View mode persisted via VS Code workspace state for cross-session retention
+- Instant view mode restoration via HTML-injected initial state (no flicker on large files)
+
+---
+
 ## [0.1.2] — 2026-07-12
 
 ### Features

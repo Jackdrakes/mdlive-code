@@ -3,12 +3,18 @@ import * as path from "path";
 import * as fs from "fs";
 import { randomBytes } from "crypto";
 
-function getWebviewContent(extensionPath: string, panel: vscode.WebviewPanel): string {
+function getWebviewContent(extensionPath: string, panel: vscode.WebviewPanel, initialViewMode: string): string {
   const webviewPath = vscode.Uri.file(path.join(extensionPath, "dist", "webview"));
   const htmlPath = path.join(webviewPath.fsPath, "index.html");
 
   let html = fs.readFileSync(htmlPath, "utf-8");
   const nonce = getNonce();
+
+  // Inject initial view mode before any scripts
+  html = html.replace(
+    "<body>",
+    `<body><script nonce="${nonce}">window.__MDLIVE_INITIAL_VIEW_MODE__=${JSON.stringify(initialViewMode)}</script>`
+  );
 
   // Replace asset paths with webview URIs
   html = html.replace(/(src|href)="\.\//g, (_match, attr) => {
@@ -33,7 +39,10 @@ function getNonce(): string {
 class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = "mdlive.editor";
 
-  constructor(private readonly extensionPath: string) {}
+  constructor(
+    private readonly extensionPath: string,
+    private readonly context: vscode.ExtensionContext
+  ) {}
 
   public async resolveCustomTextEditor(
     document: vscode.TextDocument,
@@ -47,7 +56,8 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
       ],
     };
 
-    panel.webview.html = getWebviewContent(this.extensionPath, panel);
+    const savedViewMode = this.context.workspaceState.get<string>("mdlive.viewMode", "split");
+    panel.webview.html = getWebviewContent(this.extensionPath, panel, savedViewMode);
 
     let isWebviewChange = false;
 
@@ -70,6 +80,8 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
       switch (message.type) {
         case "ready":
           sendContent();
+          const savedViewMode = this.context.workspaceState.get<string>("mdlive.viewMode", "split");
+          panel.webview.postMessage({ type: "setViewMode", viewMode: savedViewMode });
           break;
 
         case "contentChanged":
@@ -95,6 +107,10 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
           await document.save();
           panel.webview.postMessage({ type: "saveCompleted" });
           break;
+
+        case "viewModeChanged":
+          this.context.workspaceState.update("mdlive.viewMode", message.viewMode);
+          break;
       }
     });
 
@@ -108,7 +124,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.registerCustomEditorProvider(
       MdLiveEditorProvider.viewType,
-      new MdLiveEditorProvider(context.extensionPath)
+      new MdLiveEditorProvider(context.extensionPath, context)
     )
   );
 

@@ -3,7 +3,7 @@ import { Toolbar } from "./components/Toolbar";
 import { EditorPanel } from "./components/EditorPanel";
 import { PreviewPanel } from "./components/PreviewPanel";
 import { ViewMode } from "./types";
-import { postMessage } from "./vscodeApi";
+import { postMessage, vscode } from "./vscodeApi";
 import { DEFAULT_CONTENT } from "./lib/constants";
 import { countWords, countCharacters } from "./lib/markdown";
 
@@ -27,7 +27,14 @@ function toggleCheckboxLine(content: string, lineIndex: number): string {
 export default function App() {
   const [content, setContent] = useState(DEFAULT_CONTENT);
   const [savedContent, setSavedContent] = useState(DEFAULT_CONTENT);
-  const [viewMode, setViewMode] = useState<ViewMode>("split");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const globalMode = (window as any).__MDLIVE_INITIAL_VIEW_MODE__ as ViewMode;
+    if (globalMode && ["split", "editor", "preview"].includes(globalMode)) {
+      return globalMode;
+    }
+    const saved = vscode.getState();
+    return (saved?.viewMode as ViewMode) || "split";
+  });
   const [showDiff, setShowDiff] = useState(false);
   const [selectionRequest, setSelectionRequest] = useState<SelectionRequest | null>(null);
   const selectionIdRef = useRef(0);
@@ -45,6 +52,9 @@ export default function App() {
       if (message.type === "saveCompleted") {
         setSavedContent(contentRef.current);
       }
+      if (message.type === "setViewMode") {
+        setViewMode(message.viewMode as ViewMode);
+      }
     };
 
     window.addEventListener("message", handler);
@@ -55,6 +65,12 @@ export default function App() {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    const state = vscode.getState() || {};
+    vscode.setState({ ...state, viewMode });
+    postMessage({ type: "viewModeChanged", viewMode });
+  }, [viewMode]);
 
   const wc = countWords(content);
   const cc = countCharacters(content);

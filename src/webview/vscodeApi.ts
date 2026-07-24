@@ -16,7 +16,9 @@ export type Message =
   | { type: "ready" }
   | { type: "contentChanged"; content: string }
   | { type: "saveRequest"; content: string }
-  | { type: "saveCompleted" };
+  | { type: "saveCompleted" }
+  | { type: "viewModeChanged"; viewMode: string }
+  | { type: "setViewMode"; viewMode: string };
 
 export function postMessage(message: Message) {
   api.postMessage(message);
