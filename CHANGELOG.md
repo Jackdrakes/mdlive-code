@@ -8,8 +8,8 @@ All notable changes to **MdLive** will be documented in this file.
 
 ### Performance
 
-- Code-split Vite build into vendor chunks: react-vendor (3.9 kB), app (200 kB), markdown (340 kB), codemirror (630 kB)
-- Eliminated monolithic 1,177 kB bundle for better caching and load performance
+- Code-split Vite build into vendor chunks: react-vendor (3.9 kB), app (200 kB), codemirror-lang (210 kB), codemirror-core (420 kB), markdown (340 kB)
+- Eliminated monolithic 1,177 kB bundle — all chunks now under 500 kB
 
 ---
 

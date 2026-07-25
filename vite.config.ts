@@ -13,13 +13,13 @@ export default defineConfig({
       output: {
         manualChunks: {
           "react-vendor": ["react", "react-dom"],
-          codemirror: [
+          "codemirror-core": [
             "@uiw/react-codemirror",
-            "@codemirror/lang-markdown",
             "@codemirror/search",
             "@codemirror/theme-one-dark",
             "@uiw/codemirror-theme-vscode",
           ],
+          "codemirror-lang": ["@codemirror/lang-markdown"],
           markdown: [
             "react-markdown",
             "remark-gfm",
