@@ -16,7 +16,6 @@ export default defineConfig({
           "codemirror-core": [
             "@uiw/react-codemirror",
             "@codemirror/search",
-            "@codemirror/theme-one-dark",
             "@uiw/codemirror-theme-vscode",
           ],
           "codemirror-lang": ["@codemirror/lang-markdown"],

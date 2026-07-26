@@ -6,6 +6,7 @@ interface ToolbarProps {
   onViewModeChange: (mode: ViewMode) => void;
   showDiff?: boolean;
   onToggleDiff?: () => void;
+  onShare?: () => void;
 }
 
 const icons: { mode: ViewMode; icon: typeof Columns; label: string }[] = [
@@ -14,7 +15,7 @@ const icons: { mode: ViewMode; icon: typeof Columns; label: string }[] = [
   { mode: "preview", icon: Eye, label: "Preview" },
 ];
 
-export function Toolbar({ viewMode, onViewModeChange, showDiff, onToggleDiff }: ToolbarProps) {
+export function Toolbar({ viewMode, onViewModeChange, showDiff, onToggleDiff, onShare }: ToolbarProps) {
   return (
     <div className="fab-group">
       {icons.map(({ mode, icon: Icon, label }) => (
@@ -34,7 +35,7 @@ export function Toolbar({ viewMode, onViewModeChange, showDiff, onToggleDiff }: 
       >
         <GitCompare />
       </button>
-      <button className="fab-btn" title="Share">
+      <button className="fab-btn" title="Share" onClick={onShare}>
         <Share2 />
       </button>
     </div>

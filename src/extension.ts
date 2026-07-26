@@ -108,6 +108,26 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
           panel.webview.postMessage({ type: "saveCompleted" });
           break;
 
+        case "share":
+          try {
+            const base64Content = Buffer.from(message.content).toString("base64");
+            const response = await fetch("https://beta-mdlive.vercel.app/api/share", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ base64: base64Content, filename: message.fileName }),
+            });
+            if (!response.ok) throw new Error(`Share failed (${response.status})`);
+            const { url } = await response.json() as { url: string };
+            await vscode.env.clipboard.writeText(url);
+            panel.webview.postMessage({ type: "shareCompleted", url });
+            vscode.window.showInformationMessage("Share URL copied to clipboard!", "Open in Browser").then((action) => {
+              if (action === "Open in Browser") vscode.env.openExternal(vscode.Uri.parse(url));
+            });
+          } catch (err: any) {
+            vscode.window.showErrorMessage(`Share failed: ${err.message}`);
+          }
+          break;
+
         case "viewModeChanged":
           this.context.workspaceState.update("mdlive.viewMode", message.viewMode);
           break;
@@ -136,6 +156,34 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   context.subscriptions.push(disposable);
+
+  const shareDisposable = vscode.commands.registerCommand("mdlive.share", async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !editor.document.fileName.endsWith(".md")) {
+      vscode.window.showWarningMessage("No active Markdown file to share.");
+      return;
+    }
+    try {
+      const content = editor.document.getText();
+      const fileName = editor.document.fileName.split(/[/\\]/).pop() || "document.md";
+      const base64Content = Buffer.from(content).toString("base64");
+      const response = await fetch("https://beta-mdlive.vercel.app/api/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ base64: base64Content, filename: fileName }),
+      });
+      if (!response.ok) throw new Error(`Share failed (${response.status})`);
+      const { url } = await response.json() as { url: string };
+      await vscode.env.clipboard.writeText(url);
+      vscode.window.showInformationMessage("Share URL copied to clipboard!", "Open in Browser").then((action) => {
+        if (action === "Open in Browser") vscode.env.openExternal(vscode.Uri.parse(url));
+      });
+    } catch (err: any) {
+      vscode.window.showErrorMessage(`Share failed: ${err.message}`);
+    }
+  });
+
+  context.subscriptions.push(shareDisposable);
 }
 
 export function deactivate() {}

@@ -54,6 +54,11 @@
       {
         "command": "mdlive.openEditor",
         "title": "MdLive: Open Markdown Editor"
+      },
+      {
+        "command": "mdlive.share",
+        "title": "MdLive: Share Markdown",
+        "icon": "$(link)"
       }
     ]
   },

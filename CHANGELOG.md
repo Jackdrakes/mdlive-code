@@ -53,7 +53,7 @@ All notable changes to **MdLive** will be documented in this file.
 - Fixed fullwidth-btn split icon overlapping with the floating action button
 - Fixed EditorPanel keyboard listener memory leak on unmount
 - Fixed preview panel not filling full window height when content is short
-- Fixed rehype plugin ordering (`rehype-sanitize` now correctly applied last for security)
+- Fixed rehype plugin ordering (`rehype-sanitize` now correctly applied first before highlighting for security)
 - Fixed `package.json` manifest fields for valid `vsce package` output
 
 ---
@@ -65,7 +65,6 @@ All notable changes to **MdLive** will be documented in this file.
 - Split-pane markdown editor with CodeMirror 6 and live preview
 - Custom editor provider for `.md` and `.markdown` files (`CustomTextEditorProvider`)
 - Markdown preview with GFM tables, task lists, and syntax highlighting via `react-markdown`, `remark-gfm`, and `rehype-highlight`
-- Sidebar file tree listing all markdown files in the workspace
 - Status bar with word count, character count, and save state
 - Obsidian Dark theme ported from the web app
 - Debounced auto-save from webview to workspace filesystem

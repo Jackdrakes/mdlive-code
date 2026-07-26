@@ -10,12 +10,13 @@ const api = acquireVsCodeApi();
 
 export const vscode = api;
 
-export type Message = 
+export type Message =
   | { type: "setContent"; content: string; fileName: string }
   | { type: "save"; content: string }
   | { type: "ready" }
   | { type: "contentChanged"; content: string }
-  | { type: "saveRequest"; content: string }
+  | { type: "share"; content: string; fileName: string }
+  | { type: "shareCompleted"; url: string }
   | { type: "saveCompleted" }
   | { type: "viewModeChanged"; viewMode: string }
   | { type: "setViewMode"; viewMode: string };

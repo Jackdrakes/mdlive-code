@@ -27,6 +27,7 @@ function toggleCheckboxLine(content: string, lineIndex: number): string {
 export default function App() {
   const [content, setContent] = useState(DEFAULT_CONTENT);
   const [savedContent, setSavedContent] = useState(DEFAULT_CONTENT);
+  const [fileName, setFileName] = useState("document.md");
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const globalMode = (window as any).__MDLIVE_INITIAL_VIEW_MODE__ as ViewMode;
     if (globalMode && ["split", "editor", "preview"].includes(globalMode)) {
@@ -48,6 +49,7 @@ export default function App() {
       if (message.type === "setContent") {
         setContent(message.content);
         setSavedContent(message.content);
+        if (message.fileName) setFileName(message.fileName);
       }
       if (message.type === "saveCompleted") {
         setSavedContent(contentRef.current);
@@ -72,6 +74,10 @@ export default function App() {
     postMessage({ type: "viewModeChanged", viewMode });
   }, [viewMode]);
 
+  const handleShare = useCallback(() => {
+    postMessage({ type: "share", content: contentRef.current, fileName });
+  }, [fileName]);
+
   const wc = countWords(content);
   const cc = countCharacters(content);
 
@@ -95,6 +101,7 @@ export default function App() {
         onViewModeChange={setViewMode}
         showDiff={showDiff}
         onToggleDiff={() => setShowDiff((v) => !v)}
+        onShare={handleShare}
       />
       <div className="app-content">
         {viewMode !== "preview" && (
