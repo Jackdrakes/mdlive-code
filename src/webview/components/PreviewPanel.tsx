@@ -219,15 +219,14 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
           );
         }
 
-        // External links — open in browser
+        // External links — open in browser via VS Code
         return (
           <a
             href={href}
             {...rest}
             onClick={(e: React.MouseEvent) => {
               e.preventDefault();
-              // External links: try to open via VS Code
-              postMessage({ type: "navigate", link: href, fromFile: currentFile || "" });
+              postMessage({ type: "openExternal", url: href });
             }}
           >
             {children}

@@ -143,6 +143,10 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
           this.context.workspaceState.update("mdlive.viewMode", message.viewMode);
           break;
 
+        case "openExternal":
+          vscode.env.openExternal(vscode.Uri.parse(message.url));
+          break;
+
         case "navigate":
           try {
             const success = await this.navManager.openLink(message.link, message.fromFile);
