@@ -28,6 +28,8 @@ export default function App() {
   const [content, setContent] = useState(DEFAULT_CONTENT);
   const [savedContent, setSavedContent] = useState(DEFAULT_CONTENT);
   const [fileName, setFileName] = useState("document.md");
+  const [isObsidianVault, setIsObsidianVault] = useState(false);
+  const [vaultRoot, setVaultRoot] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const globalMode = (window as any).__MDLIVE_INITIAL_VIEW_MODE__ as ViewMode;
     if (globalMode && ["split", "editor", "preview"].includes(globalMode)) {
@@ -42,6 +44,8 @@ export default function App() {
   const contentRef = useRef(content);
   contentRef.current = content;
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentFileRef = useRef("");
+  currentFileRef.current = fileName;
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -56,6 +60,10 @@ export default function App() {
       }
       if (message.type === "setViewMode") {
         setViewMode(message.viewMode as ViewMode);
+      }
+      if (message.type === "vaultInfo") {
+        setIsObsidianVault(message.isObsidianVault);
+        setVaultRoot(message.vaultRoot);
       }
     };
 
@@ -111,9 +119,17 @@ export default function App() {
         )}
         {viewMode !== "editor" && (
           <div className={`panel ${viewMode === "split" ? "panel-split" : "panel-full"}`}>
-            <PreviewPanel markdown={content} onToggleCheckbox={(lineIndex) => {
-              setContent(toggleCheckboxLine(content, lineIndex));
-            }} savedMarkdown={savedContent} showDiff={showDiff} onDoubleClickLine={viewMode === "split" ? handlePreviewDoubleClick : undefined} />
+            <PreviewPanel
+              markdown={content}
+              onToggleCheckbox={(lineIndex) => {
+                setContent(toggleCheckboxLine(content, lineIndex));
+              }}
+              savedMarkdown={savedContent}
+              showDiff={showDiff}
+              onDoubleClickLine={viewMode === "split" ? handlePreviewDoubleClick : undefined}
+              isObsidianVault={isObsidianVault}
+              currentFile={fileName}
+            />
           </div>
         )}
       </div>

@@ -5,6 +5,7 @@ import rehypeHighlight from "rehype-highlight";
 import { useState, useMemo, useRef, useCallback } from "react";
 import { useScrollBounce } from "../lib/useScrollBounce";
 import { computeDiff, DiffLine } from "../lib/diff";
+import { postMessage } from "../vscodeApi";
 
 interface PreviewPanelProps {
   markdown: string;
@@ -12,6 +13,8 @@ interface PreviewPanelProps {
   savedMarkdown?: string;
   showDiff?: boolean;
   onDoubleClickLine?: (fromLine: number, toLine: number) => void;
+  isObsidianVault?: boolean;
+  currentFile?: string;
 }
 
 function slugify(text: string): string {
@@ -76,7 +79,7 @@ function getHeadingText(children: React.ReactNode): string {
   return getText(children);
 }
 
-export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDiff, onDoubleClickLine }: PreviewPanelProps) {
+export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDiff, onDoubleClickLine, isObsidianVault, currentFile }: PreviewPanelProps) {
   const lines = markdown.split("\n");
   const [fullWidth, setFullWidth] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -174,16 +177,61 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
         return <h6 id={id} className="heading-anchor" onDoubleClick={dbl}><a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>{children}</h6>;
       },
       a: ({ href, children, ...rest }: any) => {
-        if (!href?.startsWith("#")) {
-          return <a href={href} {...rest}>{children}</a>;
+        if (!href) return <a {...rest}>{children}</a>;
+
+        // Anchor-only links — smooth scroll
+        if (href.startsWith("#")) {
+          return (
+            <a href={href} {...rest} onClick={(e: React.MouseEvent) => {
+              e.preventDefault();
+              const id = href.slice(1);
+              const el = document.getElementById(id);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}>{children}</a>
+          );
         }
+
+        // Obsidian wikilinks: [[target]] or [[target|alias]]
+        const isWikilink = href.startsWith("[[") && href.endsWith("]]");
+        // Standard markdown file links: ./path.md, ../path.md, /path.md, or bare filename.md
+        const isFileLink = !/^https?:\/\//.test(href) && (
+          href.endsWith(".md") || href.endsWith(".markdown") || href.startsWith("#") ||
+          /^\.\.?\//.test(href) || /^\//.test(href)
+        );
+
+        if (isWikilink || isFileLink) {
+          const link = isWikilink ? href.slice(2, -2) : href;
+          return (
+            <a
+              href={href}
+              {...rest}
+              onClick={(e: React.MouseEvent) => {
+                e.preventDefault();
+                postMessage({
+                  type: "navigate",
+                  link,
+                  fromFile: currentFile || "",
+                });
+              }}
+            >
+              {children}
+            </a>
+          );
+        }
+
+        // External links — open in browser
         return (
-          <a href={href} {...rest} onClick={(e: React.MouseEvent) => {
-            e.preventDefault();
-            const id = href.slice(1);
-            const el = document.getElementById(id);
-            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-          }}>{children}</a>
+          <a
+            href={href}
+            {...rest}
+            onClick={(e: React.MouseEvent) => {
+              e.preventDefault();
+              // External links: try to open via VS Code
+              postMessage({ type: "navigate", link: href, fromFile: currentFile || "" });
+            }}
+          >
+            {children}
+          </a>
         );
       },
       li: ({ children, className, node, ...rest }: any) => {

@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 import { randomBytes } from "crypto";
+import { NavigationManager } from "./navigation-manager";
 
 function getWebviewContent(extensionPath: string, panel: vscode.WebviewPanel, initialViewMode: string): string {
   const webviewPath = vscode.Uri.file(path.join(extensionPath, "dist", "webview"));
@@ -38,11 +39,14 @@ function getNonce(): string {
 
 class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = "mdlive.editor";
+  private navManager: NavigationManager;
 
   constructor(
     private readonly extensionPath: string,
     private readonly context: vscode.ExtensionContext
-  ) {}
+  ) {
+    this.navManager = new NavigationManager();
+  }
 
   public async resolveCustomTextEditor(
     document: vscode.TextDocument,
@@ -58,6 +62,8 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
 
     const savedViewMode = this.context.workspaceState.get<string>("mdlive.viewMode", "split");
     panel.webview.html = getWebviewContent(this.extensionPath, panel, savedViewMode);
+
+    const vaultInfo = await this.navManager.initialize();
 
     let isWebviewChange = false;
 
@@ -82,6 +88,11 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
           sendContent();
           const savedViewMode = this.context.workspaceState.get<string>("mdlive.viewMode", "split");
           panel.webview.postMessage({ type: "setViewMode", viewMode: savedViewMode });
+          panel.webview.postMessage({
+            type: "vaultInfo",
+            isObsidianVault: vaultInfo.isObsidianVault,
+            vaultRoot: vaultInfo.vaultRoot,
+          });
           break;
 
         case "contentChanged":
@@ -130,6 +141,19 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
 
         case "viewModeChanged":
           this.context.workspaceState.update("mdlive.viewMode", message.viewMode);
+          break;
+
+        case "navigate":
+          try {
+            const success = await this.navManager.openLink(message.link, message.fromFile);
+            if (success) {
+              this.navManager.pushHistory(message.link);
+            } else {
+              vscode.window.showWarningMessage(`Could not resolve link: ${message.link}`);
+            }
+          } catch (err: any) {
+            vscode.window.showErrorMessage(`Navigation failed: ${err.message}`);
+          }
           break;
       }
     });

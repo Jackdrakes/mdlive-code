@@ -19,7 +19,16 @@ export type Message =
   | { type: "shareCompleted"; url: string }
   | { type: "saveCompleted" }
   | { type: "viewModeChanged"; viewMode: string }
-  | { type: "setViewMode"; viewMode: string };
+  | { type: "setViewMode"; viewMode: string }
+  | { type: "navigate"; link: string; fromFile: string }
+  | { type: "vaultInfo"; isObsidianVault: boolean; vaultRoot: string };
+
+export type IncomingMessage =
+  | { type: "setContent"; content: string; fileName: string }
+  | { type: "saveCompleted" }
+  | { type: "setViewMode"; viewMode: string }
+  | { type: "vaultInfo"; isObsidianVault: boolean; vaultRoot: string }
+  | { type: "shareCompleted"; url: string };
 
 export function postMessage(message: Message) {
   api.postMessage(message);
