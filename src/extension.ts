@@ -121,6 +121,11 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
 
         case "share":
           try {
+            const confirm = await vscode.window.showInformationMessage(
+              "This will send your document content to a remote server. Continue?",
+              "Share", "Cancel"
+            );
+            if (confirm !== "Share") break;
             const base64Content = Buffer.from(message.content).toString("base64");
             const response = await fetch("https://beta-mdlive.vercel.app/api/share", {
               method: "POST",
@@ -192,6 +197,11 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
     try {
+      const confirm = await vscode.window.showInformationMessage(
+        "This will send your document content to a remote server. Continue?",
+        "Share", "Cancel"
+      );
+      if (confirm !== "Share") return;
       const content = editor.document.getText();
       const fileName = editor.document.fileName.split(/[/\\]/).pop() || "document.md";
       const base64Content = Buffer.from(content).toString("base64");
