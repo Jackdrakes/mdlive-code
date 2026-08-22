@@ -30,7 +30,4 @@ export class VaultDetector {
     return info;
   }
 
-  invalidate(folderPath: string): void {
-    this.cache.delete(folderPath);
-  }
 }

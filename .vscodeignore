@@ -1,7 +1,12 @@
 .vscode/**
 .gitignore
+.github/**
 esbuild.js
+vite.config.ts
+tsconfig.json
+tsconfig.webview.json
 node_modules/**
 src/**
-tsconfig.json
 .git/**
+*.test.ts
+coverage/**

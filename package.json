@@ -98,7 +98,6 @@
   "dependencies": {
     "@codemirror/lang-markdown": "^6.3.0",
     "@codemirror/search": "^6.7.1",
-    "@codemirror/theme-one-dark": "^6.1.2",
     "@uiw/codemirror-theme-vscode": "^4.25.10",
     "@uiw/react-codemirror": "^4.23.0",
     "lucide-react": "^0.460.0",

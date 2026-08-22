@@ -23,13 +23,6 @@ export type Message =
   | { type: "navigate"; link: string; fromFile: string }
   | { type: "vaultInfo"; isObsidianVault: boolean; vaultRoot: string };
 
-export type IncomingMessage =
-  | { type: "setContent"; content: string; fileName: string }
-  | { type: "saveCompleted" }
-  | { type: "setViewMode"; viewMode: string }
-  | { type: "vaultInfo"; isObsidianVault: boolean; vaultRoot: string }
-  | { type: "shareCompleted"; url: string };
-
 export function postMessage(message: Message) {
   api.postMessage(message);
 }
