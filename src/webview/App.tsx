@@ -25,6 +25,7 @@ function toggleCheckboxLine(content: string, lineIndex: number): string {
 }
 
 export default function App() {
+  const [isLoading, setIsLoading] = useState(true);
   const [content, setContent] = useState(DEFAULT_CONTENT);
   const [savedContent, setSavedContent] = useState(DEFAULT_CONTENT);
   const [fileName, setFileName] = useState("document.md");
@@ -51,6 +52,7 @@ export default function App() {
     const handler = (event: MessageEvent) => {
       const message = event.data;
       if (message.type === "setContent") {
+        setIsLoading(false);
         setContent(message.content);
         setSavedContent(message.content);
         if (message.fileName) setFileName(message.fileName);
@@ -104,6 +106,12 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="loading-spinner" />
+          <span className="loading-text">Loading vault...</span>
+        </div>
+      )}
       <Toolbar
         viewMode={viewMode}
         onViewModeChange={setViewMode}
