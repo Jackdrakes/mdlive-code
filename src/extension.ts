@@ -37,6 +37,33 @@ function getNonce(): string {
   return randomBytes(32).toString("base64");
 }
 
+async function shareDocument(
+  content: string,
+  fileName: string,
+  panel?: vscode.WebviewPanel
+): Promise<void> {
+  const confirm = await vscode.window.showInformationMessage(
+    "This will send your document content to a remote server. Continue?",
+    "Share", "Cancel"
+  );
+  if (confirm !== "Share") return;
+  const base64Content = Buffer.from(content).toString("base64");
+  const response = await fetch("https://beta-mdlive.vercel.app/api/share", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ base64: base64Content, filename: fileName }),
+  });
+  if (!response.ok) throw new Error(`Share failed (${response.status})`);
+  const { url } = await response.json() as { url: string };
+  await vscode.env.clipboard.writeText(url);
+  if (panel) {
+    panel.webview.postMessage({ type: "shareCompleted", url });
+  }
+  vscode.window.showInformationMessage("Share URL copied to clipboard!", "Open in Browser").then((action) => {
+    if (action === "Open in Browser") vscode.env.openExternal(vscode.Uri.parse(url));
+  });
+}
+
 class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = "mdlive.editor";
   private navManager: NavigationManager;
@@ -121,24 +148,7 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
 
         case "share":
           try {
-            const confirm = await vscode.window.showInformationMessage(
-              "This will send your document content to a remote server. Continue?",
-              "Share", "Cancel"
-            );
-            if (confirm !== "Share") break;
-            const base64Content = Buffer.from(message.content).toString("base64");
-            const response = await fetch("https://beta-mdlive.vercel.app/api/share", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ base64: base64Content, filename: message.fileName }),
-            });
-            if (!response.ok) throw new Error(`Share failed (${response.status})`);
-            const { url } = await response.json() as { url: string };
-            await vscode.env.clipboard.writeText(url);
-            panel.webview.postMessage({ type: "shareCompleted", url });
-            vscode.window.showInformationMessage("Share URL copied to clipboard!", "Open in Browser").then((action) => {
-              if (action === "Open in Browser") vscode.env.openExternal(vscode.Uri.parse(url));
-            });
+            await shareDocument(message.content, message.fileName, panel);
           } catch (err: any) {
             vscode.window.showErrorMessage(`Share failed: ${err.message}`);
           }
@@ -197,25 +207,8 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
     try {
-      const confirm = await vscode.window.showInformationMessage(
-        "This will send your document content to a remote server. Continue?",
-        "Share", "Cancel"
-      );
-      if (confirm !== "Share") return;
-      const content = editor.document.getText();
       const fileName = editor.document.fileName.split(/[/\\]/).pop() || "document.md";
-      const base64Content = Buffer.from(content).toString("base64");
-      const response = await fetch("https://beta-mdlive.vercel.app/api/share", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ base64: base64Content, filename: fileName }),
-      });
-      if (!response.ok) throw new Error(`Share failed (${response.status})`);
-      const { url } = await response.json() as { url: string };
-      await vscode.env.clipboard.writeText(url);
-      vscode.window.showInformationMessage("Share URL copied to clipboard!", "Open in Browser").then((action) => {
-        if (action === "Open in Browser") vscode.env.openExternal(vscode.Uri.parse(url));
-      });
+      await shareDocument(editor.document.getText(), fileName);
     } catch (err: any) {
       vscode.window.showErrorMessage(`Share failed: ${err.message}`);
     }
