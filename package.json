@@ -2,7 +2,7 @@
   "name": "vscode-mdlive",
   "displayName": "MdLive",
   "description": "Live markdown editor with split preview, CodeMirror editing, and GFM support",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "publisher": "jackspace",
   "engines": {
     "vscode": "^1.85.0"
