@@ -4,6 +4,50 @@ All notable changes to **MdLive** will be documented in this file.
 
 ---
 
+## [0.1.6] — 2026-08-22
+
+### Features
+
+- Add Obsidian vault integration with automatic detection and file navigation
+- Add loading spinner during vault detection for better UX
+- Rewrite README with comprehensive documentation
+
+### Bug Fixes
+
+- Open external links in browser instead of routing through local resolver
+- Allow external images in preview CSP (was blocking remote images)
+- Add confirmation dialog before sharing document content
+- Log filesystem errors in vault scanner instead of silently swallowing them
+
+### Refactoring
+
+- Extract shared `shareDocument()` function to deduplicate share logic between webview handler and command
+- Remove unused `@codemirror/theme-one-dark` dependency
+- Remove unused `IncomingMessage` type and `VaultDetector.invalidate()` method
+- Tighten `.vscodeignore` to exclude build config and test files from `.vsix`
+
+### Chores
+
+- Update marketplace keywords for better discoverability
+- Add `.DS_Store` to gitignore and untrack
+
+---
+
+## [0.1.5] — 2026-08-01
+
+### Features
+
+- Obsidian wikilink navigation (`[[target]]`, `[[target|alias]]`, `[[target#heading]]`)
+- Standard markdown link resolution (relative paths, absolute paths, heading anchors)
+- Navigation history with back/forward support
+- External link handling via `vscode.env.openExternal()`
+
+### Bug Fixes
+
+- Fixed wikilink resolution across vault with basename and partial matching
+
+---
+
 ## [0.1.4] — 2026-07-25
 
 ### Performance
