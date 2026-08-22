@@ -32,7 +32,9 @@ async function findFilesRecursive(dir: string, extension: string): Promise<strin
         results.push(fullPath);
       }
     }
-  } catch {}
+  } catch (err) {
+    console.error("[Vault Scan] Error reading directory:", dir, err);
+  }
   return results;
 }
 
