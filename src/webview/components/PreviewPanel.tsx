@@ -2,10 +2,20 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeHighlight from "rehype-highlight";
+import { defaultSchema } from "hast-util-sanitize";
 import { useState, useMemo, useRef, useCallback } from "react";
 import { useScrollBounce } from "../lib/useScrollBounce";
 import { computeDiff, DiffLine } from "../lib/diff";
 import { postMessage } from "../vscodeApi";
+import { IMG_EMBED_MARKER, transformObsidianImageEmbeds } from "../lib/markdown";
+
+const sanitizeSchema = {
+  ...defaultSchema,
+  protocols: {
+    ...defaultSchema.protocols,
+    src: [...(defaultSchema.protocols?.src || []), "data", "mdlive-embed"],
+  },
+} as any;
 
 interface PreviewPanelProps {
   markdown: string;
@@ -15,6 +25,7 @@ interface PreviewPanelProps {
   onDoubleClickLine?: (fromLine: number, toLine: number) => void;
   isObsidianVault?: boolean;
   currentFile?: string;
+  imageMap?: Record<string, string>;
 }
 
 function slugify(text: string): string {
@@ -79,7 +90,7 @@ function getHeadingText(children: React.ReactNode): string {
   return getText(children);
 }
 
-export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDiff, onDoubleClickLine, isObsidianVault, currentFile }: PreviewPanelProps) {
+export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDiff, onDoubleClickLine, isObsidianVault, currentFile, imageMap }: PreviewPanelProps) {
   const lines = markdown.split("\n");
   const [fullWidth, setFullWidth] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -88,6 +99,8 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
   useScrollBounce(viewportRef, contentRef);
 
   checkboxRenderIndex.current = 0;
+
+  const processedMarkdown = useMemo(() => transformObsidianImageEmbeds(markdown), [markdown]);
 
   const diffLines = useMemo<DiffLine[]>(() => {
     if (!showDiff || savedMarkdown === undefined) return [];
@@ -251,8 +264,38 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
         }
         return <li className={className} {...rest} onDoubleClick={dbl}>{children}</li>;
       },
+      img: ({ src, alt, title, node, ...rest }: any) => {
+        let resolvedSrc = src;
+        let width: number | undefined;
+
+        if (src && src.startsWith(IMG_EMBED_MARKER)) {
+          const restOfSrc = src.slice(IMG_EMBED_MARKER.length);
+          const wIdx = restOfSrc.indexOf("?w=");
+          const embedTarget = wIdx === -1 ? restOfSrc : restOfSrc.slice(0, wIdx);
+          const wValue = wIdx === -1 ? undefined : restOfSrc.slice(wIdx + 3);
+          if (wValue !== undefined) width = parseInt(wValue, 10);
+          if (imageMap?.[embedTarget]) resolvedSrc = imageMap[embedTarget];
+        } else if (
+          src &&
+          !/^(https?:|data:)/i.test(src) &&
+          !/^vscode-webview/.test(src) &&
+          imageMap?.[src]
+        ) {
+          resolvedSrc = imageMap[src];
+        }
+
+        return (
+          <img
+            src={resolvedSrc}
+            alt={alt}
+            title={title}
+            {...rest}
+            style={width ? { width: `${width}px`, maxWidth: "100%" } : undefined}
+          />
+        );
+      },
     };
-  }, [checkboxData, onToggleCheckbox, onDoubleClickLine, handleBlockDoubleClick]);
+  }, [checkboxData, onToggleCheckbox, onDoubleClickLine, handleBlockDoubleClick, imageMap]);
 
   return (
     <div ref={viewportRef} style={{ background: "var(--bg-secondary)", height: "100%", overflow: "auto", display: "flex", flexDirection: "column" }}>
@@ -304,10 +347,10 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
             <div className="markdown-preview">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeSanitize, rehypeHighlight]}
+                rehypePlugins={[[rehypeSanitize, sanitizeSchema], rehypeHighlight]}
                 components={previewComponents}
               >
-                {markdown}
+                {processedMarkdown}
               </ReactMarkdown>
             </div>
           )}

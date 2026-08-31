@@ -3,6 +3,53 @@ import * as path from "path";
 import * as fs from "fs";
 import { randomBytes } from "crypto";
 import { NavigationManager } from "./navigation-manager";
+import {
+  extractMarkdownImageSrcs,
+  extractObsidianEmbedTargets,
+  findImageFiles,
+  resolveLocalImage,
+  tryDecode,
+} from "./image-resolver";
+
+export interface ImageMap {
+  [src: string]: string;
+}
+
+async function buildImageMap(
+  webview: vscode.Webview,
+  content: string,
+  fromFile: string,
+  vaultRoot: string,
+  isObsidianVault: boolean,
+  vaultImageIndex: string[] | null
+): Promise<ImageMap> {
+  const map: ImageMap = {};
+  const add = (src: string, abs: string | null) => {
+    if (!abs) return;
+    const uri = webview.asWebviewUri(vscode.Uri.file(abs)).toString();
+    map[src] = uri;
+    const decoded = tryDecode(src);
+    if (decoded !== src) map[decoded] = uri;
+  };
+
+  try {
+    const localSrcs = extractMarkdownImageSrcs(content);
+    for (const src of localSrcs) {
+      add(src, await resolveLocalImage(src, fromFile, vaultRoot, vaultImageIndex));
+    }
+
+    if (isObsidianVault) {
+      const targets = extractObsidianEmbedTargets(content);
+      for (const target of targets) {
+        add(target, await resolveLocalImage(target, fromFile, vaultRoot, vaultImageIndex));
+      }
+    }
+  } catch (err) {
+    console.error("[Image Map] Failed to build image map:", err);
+  }
+
+  return map;
+}
 
 function getWebviewContent(extensionPath: string, panel: vscode.WebviewPanel, initialViewMode: string): string {
   const webviewPath = vscode.Uri.file(path.join(extensionPath, "dist", "webview"));
@@ -80,10 +127,13 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
     panel: vscode.WebviewPanel,
     _token: vscode.CancellationToken
   ): Promise<void> {
+    const fileDir = path.dirname(document.fileName);
+
     panel.webview.options = {
       enableScripts: true,
       localResourceRoots: [
         vscode.Uri.file(path.join(this.extensionPath, "dist")),
+        vscode.Uri.file(fileDir),
       ],
     };
 
@@ -92,13 +142,44 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
 
     const vaultInfo = await this.navManager.initialize();
 
+    const isObsidianVault = vaultInfo.isObsidianVault;
+    const vaultRoot = vaultInfo.vaultRoot;
+    if (vaultRoot) {
+      panel.webview.options = {
+        enableScripts: true,
+        localResourceRoots: [
+          vscode.Uri.file(path.join(this.extensionPath, "dist")),
+          vscode.Uri.file(fileDir),
+          vscode.Uri.file(vaultRoot),
+        ],
+      };
+    }
+
     let isWebviewChange = false;
 
-    const sendContent = () => {
+    let vaultImageIndex: string[] | null | undefined;
+    const getVaultImageIndex = async (): Promise<string[] | null> => {
+      if (isObsidianVault && vaultRoot && vaultImageIndex === undefined) {
+        vaultImageIndex = await findImageFiles(vaultRoot);
+      }
+      return vaultImageIndex ?? null;
+    };
+
+    const sendContent = async () => {
+      const imageMap = await buildImageMap(
+        panel.webview,
+        document.getText(),
+        document.fileName,
+        vaultRoot,
+        isObsidianVault,
+        await getVaultImageIndex()
+      );
       panel.webview.postMessage({
         type: "setContent",
         content: document.getText(),
         fileName: path.basename(document.fileName),
+        fileDir,
+        imageMap,
       });
     };
 
@@ -131,6 +212,15 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
           const contentEdit = new vscode.WorkspaceEdit();
           contentEdit.replace(document.uri, editRange, message.content);
           await vscode.workspace.applyEdit(contentEdit);
+          const refreshedMap = await buildImageMap(
+            panel.webview,
+            message.content,
+            document.fileName,
+            vaultRoot,
+            isObsidianVault,
+            await getVaultImageIndex()
+          );
+          panel.webview.postMessage({ type: "imageMap", imageMap: refreshedMap });
           break;
 
         case "save":
@@ -143,6 +233,15 @@ class MdLiveEditorProvider implements vscode.CustomTextEditorProvider {
           edit.replace(document.uri, fullRange, message.content);
           await vscode.workspace.applyEdit(edit);
           await document.save();
+          const saveImageMap = await buildImageMap(
+            panel.webview,
+            message.content,
+            document.fileName,
+            vaultRoot,
+            isObsidianVault,
+            await getVaultImageIndex()
+          );
+          panel.webview.postMessage({ type: "imageMap", imageMap: saveImageMap });
           panel.webview.postMessage({ type: "saveCompleted" });
           break;
 

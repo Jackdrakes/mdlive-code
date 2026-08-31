@@ -40,6 +40,7 @@ export default function App() {
     return (saved?.viewMode as ViewMode) || "split";
   });
   const [showDiff, setShowDiff] = useState(false);
+  const [imageMap, setImageMap] = useState<Record<string, string>>({});
   const [selectionRequest, setSelectionRequest] = useState<SelectionRequest | null>(null);
   const selectionIdRef = useRef(0);
   const contentRef = useRef(content);
@@ -56,6 +57,10 @@ export default function App() {
         setContent(message.content);
         setSavedContent(message.content);
         if (message.fileName) setFileName(message.fileName);
+        if (message.imageMap) setImageMap(message.imageMap);
+      }
+      if (message.type === "imageMap") {
+        setImageMap(message.imageMap || {});
       }
       if (message.type === "saveCompleted") {
         setSavedContent(contentRef.current);
@@ -137,6 +142,7 @@ export default function App() {
               onDoubleClickLine={viewMode === "split" ? handlePreviewDoubleClick : undefined}
               isObsidianVault={isObsidianVault}
               currentFile={fileName}
+              imageMap={imageMap}
             />
           </div>
         )}

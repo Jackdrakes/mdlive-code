@@ -11,7 +11,8 @@ const api = acquireVsCodeApi();
 export const vscode = api;
 
 export type Message =
-  | { type: "setContent"; content: string; fileName: string }
+  | { type: "setContent"; content: string; fileName: string; fileDir?: string; imageMap?: Record<string, string> }
+  | { type: "imageMap"; imageMap: Record<string, string> }
   | { type: "save"; content: string }
   | { type: "ready" }
   | { type: "contentChanged"; content: string }
@@ -21,6 +22,7 @@ export type Message =
   | { type: "viewModeChanged"; viewMode: string }
   | { type: "setViewMode"; viewMode: string }
   | { type: "navigate"; link: string; fromFile: string }
+  | { type: "openExternal"; url: string }
   | { type: "vaultInfo"; isObsidianVault: boolean; vaultRoot: string };
 
 export function postMessage(message: Message) {
