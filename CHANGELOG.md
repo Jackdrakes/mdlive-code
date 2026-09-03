@@ -4,6 +4,17 @@ All notable changes to **MdLive** will be documented in this file.
 
 ---
 
+## [0.2.0] — 2026-09-03
+
+### Features
+
+- Render external (https) images in the markdown preview by allowing them through the CSP
+- Render local, relative, and absolute image paths in the preview by resolving them to webview URIs
+- Support Obsidian image embeds (`![[image.png]]` and `![[image.png|200]]`) with width support
+- Resolve images by filename across the whole vault as a fallback for bare embed targets
+
+---
+
 ## [0.1.6] — 2026-08-22
 
 ### Features
