@@ -5,6 +5,7 @@ import { EditorView, keymap } from "@codemirror/view";
 import { search, openSearchPanel } from "@codemirror/search";
 import { useCallback, useEffect, useRef } from "react";
 import { postMessage } from "../vscodeApi";
+import { useScrollBounce } from "../lib/useScrollBounce";
 
 interface SelectionRequest {
   fromLine: number;
@@ -20,6 +21,14 @@ interface EditorPanelProps {
 
 export function EditorPanel({ value, onChange, selectionRequest }: EditorPanelProps) {
   const editorRef = useRef<EditorView | null>(null);
+  // CodeMirror grows to its content, so the surrounding app panel is the element that scrolls.
+  const viewportRef = useRef<HTMLElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const setContentElement = useCallback((element: HTMLDivElement | null) => {
+    contentRef.current = element;
+    viewportRef.current = element?.parentElement ?? null;
+  }, []);
+  useScrollBounce(viewportRef, contentRef);
 
   const triggerSave = useCallback(() => {
     if (editorRef.current) {
@@ -105,7 +114,7 @@ export function EditorPanel({ value, onChange, selectionRequest }: EditorPanelPr
   ]);
 
   return (
-    <div className="h-full w-full overflow-hidden">
+    <div ref={setContentElement} className="h-full w-full overflow-hidden">
       <CodeMirror
         value={value}
         height="100%"

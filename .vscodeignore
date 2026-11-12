@@ -9,4 +9,13 @@ node_modules/**
 src/**
 .git/**
 *.test.ts
+tests/**
+vitest.config.ts
 coverage/**
+AGENTS.md
+**/AGENTS.md
+.DS_Store
+**/.DS_Store
+test/**
+.vscode-test/**
+graphify-out/**

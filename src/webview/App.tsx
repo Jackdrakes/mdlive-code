@@ -6,6 +6,7 @@ import { ViewMode } from "./types";
 import { postMessage, vscode } from "./vscodeApi";
 import { DEFAULT_CONTENT } from "./lib/constants";
 import { countWords, countCharacters } from "./lib/markdown";
+import { toggleTaskCheckbox } from "../lib/task-list";
 
 interface SelectionRequest {
   fromLine: number;
@@ -13,22 +14,12 @@ interface SelectionRequest {
   id: number;
 }
 
-function toggleCheckboxLine(content: string, lineIndex: number): string {
-  const lines = content.split("\n");
-  const line = lines[lineIndex];
-  if (!line) return content;
-  const match = line.match(/^(\s*-\s*\[)([ x])(\]\s*)/);
-  if (!match) return content;
-  const newCheck = match[2] === "x" ? " " : "x";
-  lines[lineIndex] = match[1] + newCheck + match[3] + line.slice(match[0].length);
-  return lines.join("\n");
-}
-
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [content, setContent] = useState(DEFAULT_CONTENT);
   const [savedContent, setSavedContent] = useState(DEFAULT_CONTENT);
   const [fileName, setFileName] = useState("document.md");
+  const [filePath, setFilePath] = useState("");
   const [isObsidianVault, setIsObsidianVault] = useState(false);
   const [vaultRoot, setVaultRoot] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -45,6 +36,8 @@ export default function App() {
   const selectionIdRef = useRef(0);
   const contentRef = useRef(content);
   contentRef.current = content;
+  const documentVersionRef = useRef<number | undefined>(undefined);
+  const contentAppliedPendingRef = useRef(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentFileRef = useRef("");
   currentFileRef.current = fileName;
@@ -54,13 +47,31 @@ export default function App() {
       const message = event.data;
       if (message.type === "setContent") {
         setIsLoading(false);
-        setContent(message.content);
+        if (message.content === contentRef.current) {
+          requestAnimationFrame(() => postMessage({ type: "contentApplied" }));
+        } else {
+          contentAppliedPendingRef.current = true;
+          setContent(message.content);
+        }
         setSavedContent(message.content);
+        documentVersionRef.current = message.documentVersion;
         if (message.fileName) setFileName(message.fileName);
+        if (message.filePath) setFilePath(message.filePath);
         if (message.imageMap) setImageMap(message.imageMap);
+      }
+      if (message.type === "scrollToHeading") {
+        const el = document.getElementById(message.slug);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (typeof message.line === "number" && message.line >= 0) {
+          selectionIdRef.current += 1;
+          setSelectionRequest({ fromLine: message.line, toLine: message.line, id: selectionIdRef.current });
+        }
       }
       if (message.type === "imageMap") {
         setImageMap(message.imageMap || {});
+      }
+      if (message.type === "documentSynced") {
+        documentVersionRef.current = message.documentVersion;
       }
       if (message.type === "saveCompleted") {
         setSavedContent(contentRef.current);
@@ -84,6 +95,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!contentAppliedPendingRef.current) return;
+    contentAppliedPendingRef.current = false;
+    postMessage({ type: "contentApplied" });
+  }, [content]);
+
+  useEffect(() => {
     const state = vscode.getState() || {};
     vscode.setState({ ...state, viewMode });
     postMessage({ type: "viewModeChanged", viewMode });
@@ -100,7 +117,11 @@ export default function App() {
     setContent(value);
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
-      postMessage({ type: "contentChanged", content: contentRef.current });
+      postMessage({
+        type: "contentChanged",
+        content: contentRef.current,
+        documentVersion: documentVersionRef.current,
+      });
     }, 300);
   }, []);
 
@@ -135,13 +156,22 @@ export default function App() {
             <PreviewPanel
               markdown={content}
               onToggleCheckbox={(lineIndex) => {
-                setContent(toggleCheckboxLine(content, lineIndex));
+                const newContent = toggleTaskCheckbox(contentRef.current, lineIndex);
+                if (newContent === contentRef.current) return;
+                if (debounceTimer.current) clearTimeout(debounceTimer.current);
+                contentRef.current = newContent;
+                setContent(newContent);
+                postMessage({
+                  type: "contentChanged",
+                  content: newContent,
+                  documentVersion: documentVersionRef.current,
+                });
               }}
               savedMarkdown={savedContent}
               showDiff={showDiff}
               onDoubleClickLine={viewMode === "split" ? handlePreviewDoubleClick : undefined}
               isObsidianVault={isObsidianVault}
-              currentFile={fileName}
+              currentFile={filePath || fileName}
               imageMap={imageMap}
             />
           </div>

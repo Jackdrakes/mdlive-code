@@ -1,29 +1,14 @@
 import * as path from "path";
 import * as fs from "fs";
+import { IMAGE_EXTENSIONS, isImageTarget, VaultIndex } from "./lib/vault-index";
 
-export const IMAGE_EXTENSIONS = [
-  ".avif",
-  ".bmp",
-  ".gif",
-  ".ico",
-  ".jpeg",
-  ".jpg",
-  ".png",
-  ".svg",
-  ".tiff",
-  ".webp",
-];
+export { IMAGE_EXTENSIONS, isImageTarget };
 
 export const OBSIDIAN_EMBED_RE = /!\[\[([^\]\|\n]+?)(?:\|(\d+))?\]\]/g;
 const MARKDOWN_IMAGE_RE = /!\[[^\]]*\]\(\s*([^)\s]+)(?:\s+["'][^"']*["'])?\s*\)/g;
 
 export function isRemoteUrl(url: string): boolean {
   return /^(https?:|data:|vscode-webview:)/i.test(url);
-}
-
-export function isImageTarget(target: string): boolean {
-  const lower = target.toLowerCase();
-  return IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
 export function tryDecode(raw: string): string {
@@ -63,24 +48,7 @@ function fileExists(filePath: string): Promise<boolean> {
 }
 
 export async function findImageFiles(dir: string): Promise<string[]> {
-  const results: string[] = [];
-  const ignored = new Set(["node_modules", ".git", ".obsidian"]);
-  try {
-    const entries = await fs.promises.readdir(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (!ignored.has(entry.name)) {
-          results.push(...(await findImageFiles(fullPath)));
-        }
-      } else if (entry.isFile() && isImageTarget(entry.name)) {
-        results.push(fullPath);
-      }
-    }
-  } catch {
-    // Ignore unreadable directories
-  }
-  return results;
+  return VaultIndex.getImageFiles(dir);
 }
 
 export async function resolveLocalImage(

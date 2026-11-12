@@ -4,6 +4,37 @@ All notable changes to **MdLive** will be documented in this file.
 
 ---
 
+## [0.2.1] — 2026-11-12
+
+### Features
+
+- Persist preview checkbox changes in all view modes and preserve VS Code undo history with range-based document edits
+- Resolve task checkboxes from Markdown source positions, including nested and ordered task lists
+- Support multi-root workspace vault detection and invalidate vault indexes on file changes and renames
+- Add configurable sharing endpoint and publish validation gates
+- Rewrite Obsidian link navigation around a shared, cached vault index (one scan per vault)
+- Convert `[[wikilinks]]` into clickable links in the preview, including `[[Note|Alias]]`, `[[Note#heading]]`, and `[[#heading]]`
+- `[[Note#heading]]` scrolls the preview to the target heading and selects the heading line
+- Consistent slug generation so preview scroll anchors and heading navigation resolve identically
+- Standard markdown links now resolve with `#heading` anchors from the note being viewed (`fromFile`)
+
+### Bug Fixes
+
+- Reject stale webview document updates when the host document version has changed
+- Prevent clicks on non-checkbox task content from toggling task state
+- Resolve relative links (`./x.md`, `../x.md`) against the current note's directory instead of the vault root
+- Fix wikilink clicks after `remark-rehype` percent-encodes `[[...]]` hrefs (decode before routing so links navigate instead of erroring)
+- Guard `openExternal` to only accept `http(s)`/`mailto:`/`tel:` URLs
+- Remove dead navigation-history code (`back`/`forward`) that was never wired to the UI
+- Smooth the edge overscroll bounce in the editor and preview: rubber-band resistance, a critically damped spring-back, an immediate rebound when trackpad momentum hits the edge instead of holding until it ends, and a scrollbar thumb that shrinks against the edge while overscrolled
+
+### Refactoring
+
+- Extract shared, testable link logic into `src/lib/` (`slug`, `wikilinks`, `link-core`, `vault-index`)
+- Add unit tests for slugging, wikilink parsing, link resolution, and vault indexing
+
+---
+
 ## [0.2.0] — 2026-09-03
 
 ### Features
@@ -50,7 +81,6 @@ All notable changes to **MdLive** will be documented in this file.
 
 - Obsidian wikilink navigation (`[[target]]`, `[[target|alias]]`, `[[target#heading]]`)
 - Standard markdown link resolution (relative paths, absolute paths, heading anchors)
-- Navigation history with back/forward support
 - External link handling via `vscode.env.openExternal()`
 
 ### Bug Fixes

@@ -3,11 +3,13 @@ import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeHighlight from "rehype-highlight";
 import { defaultSchema } from "hast-util-sanitize";
-import { useState, useMemo, useRef, useCallback } from "react";
+import { Children, cloneElement, isValidElement, useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useScrollBounce } from "../lib/useScrollBounce";
 import { computeDiff, DiffLine } from "../lib/diff";
 import { postMessage } from "../vscodeApi";
 import { IMG_EMBED_MARKER, transformObsidianImageEmbeds } from "../lib/markdown";
+import { slugify } from "../../lib/slug";
+import { remarkWikilinks } from "../../lib/wikilinks";
 
 const sanitizeSchema = {
   ...defaultSchema,
@@ -16,6 +18,14 @@ const sanitizeSchema = {
     src: [...(defaultSchema.protocols?.src || []), "data", "mdlive-embed"],
   },
 } as any;
+
+function decodeHref(u: string): string {
+  try {
+    return decodeURIComponent(u);
+  } catch {
+    return u;
+  }
+}
 
 interface PreviewPanelProps {
   markdown: string;
@@ -28,26 +38,98 @@ interface PreviewPanelProps {
   imageMap?: Record<string, string>;
 }
 
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/--+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+type CopyState = "idle" | "copied" | "error";
 
 function CopyButton({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false);
+  const [state, setState] = useState<CopyState>("idle");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const flash = useCallback((next: CopyState) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setState(next);
+    timerRef.current = setTimeout(() => setState("idle"), 2000);
+  }, []);
+
+  const fallbackCopy = useCallback(async (text: string): Promise<boolean> => {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.top = "-9999px";
+    document.body.appendChild(textarea);
+    const selection = document.getSelection();
+    const previousRange = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    textarea.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch {
+      ok = false;
+    } finally {
+      document.body.removeChild(textarea);
+      if (selection && previousRange) {
+        selection.removeAllRanges();
+        selection.addRange(previousRange);
+      }
+    }
+    return ok;
+  }, []);
+
+  const copyViaExtension = useCallback((text: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        window.removeEventListener("message", handler);
+        resolve(false);
+      }, 2000);
+      const handler = (event: MessageEvent) => {
+        if (event.data?.type === "copyCompleted") {
+          clearTimeout(timeout);
+          window.removeEventListener("message", handler);
+          resolve(true);
+        }
+      };
+      window.addEventListener("message", handler);
+      postMessage({ type: "copyToClipboard", text });
+    });
+  }, []);
+
+  const handleCopy = useCallback(async () => {
+    let ok = false;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(code);
+        ok = true;
+      }
+    } catch {
+      ok = false;
+    }
+    if (!ok) ok = await fallbackCopy(code);
+    if (!ok) {
+      ok = await copyViaExtension(code);
+    }
+    flash(ok ? "copied" : "error");
+  }, [code, fallbackCopy, copyViaExtension, flash]);
+
+  const copied = state === "copied";
+  const failed = state === "error";
 
   return (
-    <button className="copy-btn" onClick={handleCopy} title="Copy code">
+    <button
+      type="button"
+      className={`copy-btn${copied ? " copied" : ""}${failed ? " error" : ""}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        handleCopy();
+      }}
+      onDoubleClick={(e) => e.stopPropagation()}
+      title={copied ? "Copied!" : failed ? "Copy failed" : "Copy code"}
+    >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         {copied ? (
           <polyline points="20 6 9 17 4 12" />
@@ -58,6 +140,11 @@ function CopyButton({ code }: { code: string }) {
           </>
         )}
       </svg>
+      {(copied || failed) && (
+        <span className="copy-label" aria-live="polite">
+          {copied ? "Copied" : "Copy failed"}
+        </span>
+      )}
     </button>
   );
 }
@@ -91,14 +178,10 @@ function getHeadingText(children: React.ReactNode): string {
 }
 
 export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDiff, onDoubleClickLine, isObsidianVault, currentFile, imageMap }: PreviewPanelProps) {
-  const lines = markdown.split("\n");
   const [fullWidth, setFullWidth] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const checkboxRenderIndex = useRef(0);
   useScrollBounce(viewportRef, contentRef);
-
-  checkboxRenderIndex.current = 0;
 
   const processedMarkdown = useMemo(() => transformObsidianImageEmbeds(markdown), [markdown]);
 
@@ -107,22 +190,33 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
     return computeDiff(savedMarkdown, markdown);
   }, [showDiff, savedMarkdown, markdown]);
 
-  const checkboxData = useMemo(() => {
-    const data: { lineIndex: number; checked: boolean }[] = [];
-    lines.forEach((line, index) => {
-      const match = line.match(/^(\s*)-\s*\[([ x])\]/);
-      if (match) {
-        data.push({ lineIndex: index, checked: match[2] === "x" });
-      }
-    });
-    return data;
-  }, [markdown]);
-
   const handleBlockDoubleClick = useCallback((startLine: number, endLine: number) => {
     onDoubleClickLine?.(startLine, endLine);
   }, [onDoubleClickLine]);
 
+  const headingIdsByLine = useMemo(() => {
+    const counts = new Map<string, number>();
+    const ids = new Map<number, string>();
+    const lines = markdown.split("\n");
+
+    for (let i = 0; i < lines.length; i++) {
+      const match = lines[i].match(/^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$/);
+      if (!match) continue;
+
+      const base = slugify(match[1].trim());
+      const occurrence = counts.get(base) ?? 0;
+      counts.set(base, occurrence + 1);
+      ids.set(i + 1, occurrence === 0 ? base : `${base}-${occurrence}`);
+    }
+
+    return ids;
+  }, [markdown]);
+
   const previewComponents = useMemo(() => {
+    const getHeadingId = (node: any, children: React.ReactNode): string => {
+      return headingIdsByLine.get(node?.position?.start?.line) || slugify(getHeadingText(children));
+    };
+
     function blockWithDblClick(Tag: "p" | "blockquote" | "pre" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6") {
       return ({ children, node, ...rest }: any) => {
         const sl = node?.position?.start?.line;
@@ -141,55 +235,57 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
         const el = node?.position?.end?.line;
         const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
         return (
-          <div className="relative" onDoubleClick={dbl}>
+          <div className="code-block-wrap" onDoubleClick={dbl}>
             <pre {...rest}>{children}</pre>
             <CopyButton code={codeText} />
           </div>
         );
       },
       h1: ({ children, node, ...rest }: any) => {
-        const id = slugify(getHeadingText(children));
+        const id = getHeadingId(node, children);
         const sl = node?.position?.start?.line;
         const el = node?.position?.end?.line;
         const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
         return <h1 id={id} className="heading-anchor" onDoubleClick={dbl}><a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>{children}</h1>;
       },
       h2: ({ children, node, ...rest }: any) => {
-        const id = slugify(getHeadingText(children));
+        const id = getHeadingId(node, children);
         const sl = node?.position?.start?.line;
         const el = node?.position?.end?.line;
         const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
         return <h2 id={id} className="heading-anchor" onDoubleClick={dbl}><a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>{children}</h2>;
       },
       h3: ({ children, node, ...rest }: any) => {
-        const id = slugify(getHeadingText(children));
+        const id = getHeadingId(node, children);
         const sl = node?.position?.start?.line;
         const el = node?.position?.end?.line;
         const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
         return <h3 id={id} className="heading-anchor" onDoubleClick={dbl}><a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>{children}</h3>;
       },
       h4: ({ children, node, ...rest }: any) => {
-        const id = slugify(getHeadingText(children));
+        const id = getHeadingId(node, children);
         const sl = node?.position?.start?.line;
         const el = node?.position?.end?.line;
         const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
         return <h4 id={id} className="heading-anchor" onDoubleClick={dbl}><a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>{children}</h4>;
       },
       h5: ({ children, node, ...rest }: any) => {
-        const id = slugify(getHeadingText(children));
+        const id = getHeadingId(node, children);
         const sl = node?.position?.start?.line;
         const el = node?.position?.end?.line;
         const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
         return <h5 id={id} className="heading-anchor" onDoubleClick={dbl}><a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>{children}</h5>;
       },
       h6: ({ children, node, ...rest }: any) => {
-        const id = slugify(getHeadingText(children));
+        const id = getHeadingId(node, children);
         const sl = node?.position?.start?.line;
         const el = node?.position?.end?.line;
         const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
         return <h6 id={id} className="heading-anchor" onDoubleClick={dbl}><a href={`#${id}`} className="anchor-link" aria-hidden="true">#</a>{children}</h6>;
       },
       a: ({ href, children, ...rest }: any) => {
+        // remark-rehype percent-encodes link targets, so decode before matching
+        href = decodeHref(href);
         if (!href) return <a {...rest}>{children}</a>;
 
         // Anchor-only links — smooth scroll
@@ -248,17 +344,35 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
       },
       li: ({ children, className, node, ...rest }: any) => {
         const isTaskItem = className?.includes("task-list-item");
-        const idx = checkboxRenderIndex.current;
         const sl = node?.position?.start?.line;
         const el = node?.position?.end?.line;
         const dbl = sl && el && onDoubleClickLine ? () => handleBlockDoubleClick(sl, el) : undefined;
         if (isTaskItem) {
-          checkboxRenderIndex.current += 1;
-          const data = checkboxData[idx];
-          const lineIndex = data?.lineIndex;
+          const lineIndex = typeof sl === "number" ? sl - 1 : undefined;
+          const taskChildren = Children.map(children, (child) => {
+            if (!isValidElement(child) || child.type !== "input") return child;
+            return cloneElement(child as React.ReactElement<any>, {
+              disabled: false,
+              onClick: (event: React.MouseEvent<HTMLInputElement>) => event.stopPropagation(),
+              onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+                event.stopPropagation();
+                if (lineIndex !== undefined) onToggleCheckbox?.(lineIndex);
+              },
+            });
+          });
           return (
-            <li className={className} {...rest} onClick={() => { if (lineIndex !== undefined) onToggleCheckbox?.(lineIndex); }} onDoubleClick={dbl}>
-              {children}
+            <li
+              className={className}
+              {...rest}
+              onClick={(event: React.MouseEvent<HTMLLIElement>) => {
+                const target = event.target;
+                if (!(target instanceof HTMLInputElement) || target.type !== "checkbox") return;
+                event.stopPropagation();
+                if (lineIndex !== undefined) onToggleCheckbox?.(lineIndex);
+              }}
+              onDoubleClick={dbl}
+            >
+              {taskChildren}
             </li>
           );
         }
@@ -295,7 +409,7 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
         );
       },
     };
-  }, [checkboxData, onToggleCheckbox, onDoubleClickLine, handleBlockDoubleClick, imageMap]);
+  }, [onToggleCheckbox, onDoubleClickLine, handleBlockDoubleClick, imageMap, headingIdsByLine]);
 
   return (
     <div ref={viewportRef} style={{ background: "var(--bg-secondary)", height: "100%", overflow: "auto", display: "flex", flexDirection: "column" }}>
@@ -328,7 +442,7 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
             )}
           </svg>
         </button>
-        <div className="markdown-preview-container">
+        <div>
           {showDiff ? (
             <div className="diff-view">
               {diffLines.map((line, i) => (
@@ -346,7 +460,7 @@ export function PreviewPanel({ markdown, onToggleCheckbox, savedMarkdown, showDi
           ) : (
             <div className="markdown-preview">
               <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
+                remarkPlugins={[remarkGfm, remarkWikilinks]}
                 rehypePlugins={[[rehypeSanitize, sanitizeSchema], rehypeHighlight]}
                 components={previewComponents}
               >

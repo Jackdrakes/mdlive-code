@@ -50,10 +50,11 @@ View mode preference is persisted across files and sessions.
 
 MdLive auto-detects Obsidian vaults by checking for a `.obsidian/` directory. When working inside a vault:
 
-- **Wikilink navigation** — click `[[Page Name]]` or `[[Page Name|Alias]]` to open the linked note
-- **Heading links** — `[[Page#heading]]` scrolls directly to the target heading
+- **Wikilink navigation** — click `[[Page Name]]`, `[[Page Name|Alias]]`, or `[[Page Name#heading]]` to open the linked note
+- **Same-note headings** — `[[#heading]]` scrolls the current note's preview to the heading
 - **Smart link resolution** — finds files by exact path, basename match, or partial match across the vault
-- **Standard markdown links** — `./relative/path.md` and `../path.md` also navigate correctly
+- **Standard markdown links** — `./relative/path.md`, `../path.md`, and `#heading` anchors navigate correctly
+- Image embeds (`![[image.png]]`) render inline; note content transclusion (`![[other note]]`) is not supported
 
 ### Sharing
 
@@ -104,6 +105,12 @@ The floating toolbar in the top-right corner provides:
 - **Split / Editor / Preview** — switch between view modes
 - **Diff toggle** — compare saved content against current edits
 - **Share** — upload and share current markdown
+
+### Settings
+
+| Setting | Description |
+|---------|-------------|
+| `mdlive.shareEndpoint` | Endpoint used for sharing documents. Sharing still requires confirmation before content is sent. |
 
 ---
 

@@ -5,3 +5,5 @@ dist/webview/
 *.vsix
 .agent-docs/
 .agents-docs/
+.vscode-test/
+graphify-out/

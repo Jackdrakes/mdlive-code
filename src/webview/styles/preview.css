@@ -404,12 +404,35 @@ html, body, #root {
   background: var(--text-secondary);
 }
 
+/* Overscroll squish: transparent end borders hide part of the thumb; the matching vertical
+   corner radius keeps the visible part pill-shaped. Values are set by useScrollBounce. */
+[data-mdlive-bounce]::-webkit-scrollbar-thumb {
+  border-top: var(--mdlive-thumb-squish-top, 0px) solid transparent;
+  border-bottom: var(--mdlive-thumb-squish-bottom, 0px) solid transparent;
+  background-clip: padding-box;
+  border-radius:
+    4px 4px 4px 4px /
+    calc(var(--mdlive-thumb-squish-top, 0px) + 4px)
+    calc(var(--mdlive-thumb-squish-top, 0px) + 4px)
+    calc(var(--mdlive-thumb-squish-bottom, 0px) + 4px)
+    calc(var(--mdlive-thumb-squish-bottom, 0px) + 4px);
+}
+
 /* Copy button */
+.code-block-wrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.code-block-wrap pre {
+  margin-bottom: 0;
+}
+
 .copy-btn {
   position: absolute;
   top: 8px;
   right: 8px;
-  padding: 6px;
+  padding: 6px 7px;
   border-radius: 6px;
   background: var(--bg-tertiary);
   border: none;
@@ -420,14 +443,38 @@ html, body, #root {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
 }
 
-pre:hover .copy-btn {
+.code-block-wrap:hover .copy-btn,
+.copy-btn:focus-visible,
+.copy-btn.copied,
+.copy-btn.error {
   opacity: 1;
 }
 
 .copy-btn:hover {
   color: var(--text-primary);
+}
+
+.copy-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.copy-btn.copied {
+  color: #4ec9b0;
+}
+
+.copy-btn.error {
+  color: #f48771;
+}
+
+.copy-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 /* Heading anchors */
